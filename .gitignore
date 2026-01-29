@@ -1,1 +1,3 @@
-__pycache__/globals.cpython-311.pyc
+__pycache__/
+*.pyc
+.venv/

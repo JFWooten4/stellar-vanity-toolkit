@@ -2,8 +2,26 @@
 
 ## Requirements
 
-- Python 3.x
-- `stellar_sdk` library
+- 🐍 Python 3.9+
+- 📦 `stellar-sdk`
+
+## Install
+
+Recommended (virtual environment):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install stellar-sdk
+```
+
+Alternative (global install):
+
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install stellar-sdk
+```
 
 ## Usage
 

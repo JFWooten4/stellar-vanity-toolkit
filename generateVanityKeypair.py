@@ -57,20 +57,19 @@ def main():
     sys.exit("\nUser ended keypair search.")
 
 def validateSearchSpan(totalInputLen):
-  match totalInputLen:
-    case span if span > 10:
-      sys.exit("Try shorter inputs.")
-    case 5:
-      return "Be advised: >30 min to compute."
-    case 6:
-      return "Be advised: >2 hrs to compute."
-    case 7:
-      return "Be advised: >10 hrs to compute."
-    case 8:
-      return "Be advised: >30 hrs to compute."
-    case 9:
-      return "Be advised: >3 days to compute."
-    case 10:
-      return "Be advised: >9 days to compute."
+  if totalInputLen > 10:
+    sys.exit("Try shorter inputs.")
+  if totalInputLen == 5:
+    return "Be advised: >30 min to compute."
+  if totalInputLen == 6:
+    return "Be advised: >2 hrs to compute."
+  if totalInputLen == 7:
+    return "Be advised: >10 hrs to compute."
+  if totalInputLen == 8:
+    return "Be advised: >30 hrs to compute."
+  if totalInputLen == 9:
+    return "Be advised: >3 days to compute."
+  if totalInputLen == 10:
+    return "Be advised: >9 days to compute."
 
 print(main())
