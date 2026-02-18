@@ -16,13 +16,13 @@ def main():
       sys.exit("Try base32 inputs.")
     prefixLen = len(prefix)
     suffixLen = len(suffix)
-    approxSearchTime = validateSearchSpan(prefixLen + suffixLen)
+    validateSearchSpan(prefixLen + suffixLen)
     searchingMoreForPrefix = prefixLen > suffixLen
     prefix = f"G{prefix}"
     
     # Main Keygen #
     partials = getINPUT("Show partial matches? (Y/n): ") == "Y"
-    print(approxSearchTime)
+
     startTime = time.time()
     n = 0
     while True:
@@ -60,16 +60,16 @@ def validateSearchSpan(totalInputLen):
   if totalInputLen > 10:
     sys.exit("Try shorter inputs.")
   if totalInputLen == 5:
-    return "Be advised: >30 min to compute."
+    print("Be advised: >30 min to compute.")
   if totalInputLen == 6:
-    return "Be advised: >2 hrs to compute."
+    print("Be advised: >2 hrs to compute.")
   if totalInputLen == 7:
-    return "Be advised: >10 hrs to compute."
+    print("Be advised: >10 hrs to compute.")
   if totalInputLen == 8:
-    return "Be advised: >30 hrs to compute."
+    print("Be advised: >30 hrs to compute.")
   if totalInputLen == 9:
-    return "Be advised: >3 days to compute."
+    print("Be advised: >3 days to compute.")
   if totalInputLen == 10:
-    return "Be advised: >9 days to compute."
+    print("Be advised: >9 days to compute.")
 
-print(main())
+main()
