@@ -40,19 +40,19 @@ def main():
         \tSecret Key: {keypair.secret}\n
         """
         sys.exit(result)
-      if not partials: continue
-      if searchingMoreForPrefix:
-        if not prefixMatch: continue
-        partial = f"{clean}—{PK[-6:]}"
-      else:
-        if not suffixMatch: continue
-        partial = f"{clean}{PK[:6]}—"
-      partialMatch = [
-        f"\r Partial Fit: {partial}",
-        f"\n  Public Key: {PK}",
-        f"\n  Secret Key: {keypair.secret}\n"
-      ]
-      sys.stdout.write("".join(partialMatch))
+      if partials:
+        if searchingMoreForPrefix:
+          if not prefixMatch: continue
+          partial = f"{clean}{PK[:6]}—"
+        else:
+          if not suffixMatch: continue
+          partial = f"{clean}—{PK[-6:]}"
+        partialMatch = [
+          f"\r Partial Fit: {partial}",
+          f"\n  Public Key: {PK}",
+          f"\n  Secret Key: {keypair.secret}\n"
+        ]
+        sys.stdout.write("".join(partialMatch))
   except KeyboardInterrupt:
     sys.exit("\nUser ended keypair search.")
 
