@@ -1,11 +1,13 @@
 # Vanity Stellar Address Toolkit
 
-## Requirements
+## Python Search
+
+### Requirements
 
 - 🐍 Python 3.9+
 - 📦 `stellar-sdk`
 
-## Install
+### Install
 
 Recommended (virtual environment, PowerShell on Windows):
 
@@ -46,7 +48,7 @@ py -3 -m pip install --upgrade pip
 py -3 -m pip install stellar-sdk
 ```
 
-## Usage
+### Usage
 
 1. Run the script by executing the following command.
 
@@ -74,6 +76,82 @@ py -3 .\generateVanity{FUNCTION}.py
 2. Enter your desired inputs.
 
 3. View the result.
+
+## C Search
+
+The C searcher is separate from the Python scripts. It does not use
+`stellar-sdk`; it uses `libsodium`.
+
+The C searcher uses this argument format:
+
+```text
+<prefix-after-G> <suffix>
+```
+
+For example, this searches for a public key like `GDRS...DUNA`:
+
+```text
+DRS DUNA
+```
+
+### Windows Parallel Build
+
+The parallel C version is Windows-only and uses all detected CPU cores by
+default, up to 64 threads.
+
+From PowerShell:
+
+```powershell
+.\build_stellar_vanity_parallel.ps1
+.\stellar_vanity_parallel.exe DRS DUNA
+```
+
+To force a specific thread count:
+
+```powershell
+.\stellar_vanity_parallel.exe DRS DUNA 16
+```
+
+### macOS Build
+
+The checked-in parallel C file uses Windows threading APIs, so on macOS build
+the portable single-process C searcher and run one worker per logical CPU core.
+
+Install dependencies:
+
+```zsh
+brew install libsodium pkg-config
+```
+
+Build:
+
+```zsh
+clang -O3 stellar_vanity.c -o stellar_vanity $(pkg-config --cflags --libs libsodium)
+```
+
+Run one search:
+
+```zsh
+./stellar_vanity DRS DUNA
+```
+
+Use all logical CPU cores on macOS:
+
+```zsh
+rm -f vanity-*.log
+pids=()
+for i in $(seq 1 $(sysctl -n hw.logicalcpu)); do
+  ./stellar_vanity DRS DUNA > "vanity-$i.log" &
+  pids+=($!)
+done
+
+wait -n
+kill $pids 2>/dev/null
+grep -h -A5 "Keypair found" vanity-*.log
+```
+
+The first worker to find a matching keypair prints the result to its log, then
+the command stops the remaining workers and displays the found keypair.
 
 ## Disclaimer
 
