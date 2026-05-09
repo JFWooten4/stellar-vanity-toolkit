@@ -7,7 +7,23 @@
 
 ## Install
 
-Recommended (virtual environment):
+Recommended (virtual environment, PowerShell on Windows):
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install stellar-sdk
+```
+
+If PowerShell blocks activation, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+Recommended (virtual environment, bash/zsh on macOS/Linux):
 
 ```bash
 python3 -m venv .venv
@@ -23,12 +39,33 @@ python3 -m pip install --upgrade pip
 python3 -m pip install stellar-sdk
 ```
 
+Alternative (global install, Windows PowerShell):
+
+```powershell
+py -3 -m pip install --upgrade pip
+py -3 -m pip install stellar-sdk
+```
+
 ## Usage
 
-1. Run the script by executing the following command:
+1. Run the script by executing the following command.
+
+If you activated a virtual environment, use `python` so the script runs with the packages installed in `.venv`:
+
+```powershell
+python .\generateVanity{FUNCTION}.py
+```
+
+If you did not activate a virtual environment and installed packages globally, use:
 
 ```bash
 python3 generateVanity{FUNCTION}.py
+```
+
+On Windows PowerShell with a global install:
+
+```powershell
+py -3 .\generateVanity{FUNCTION}.py
 ```
 
 - `Keypair` generates a standard pre- or suffix vanity public key
