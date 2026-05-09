@@ -41,18 +41,36 @@ def main():
         """
         sys.exit(result)
       if partials:
-        if searchingMoreForPrefix:
-          if not prefixMatch: continue
-          partial = f"{clean}{PK[:6]}—"
-        else:
-          if not suffixMatch: continue
-          partial = f"{clean}—{PK[-6:]}"
-        partialMatch = [
-          f"\r Partial Fit: {partial}",
-          f"\n  Public Key: {PK}",
-          f"\n  Secret Key: {keypair.secret}\n"
-        ]
-        sys.stdout.write("".join(partialMatch))
+        if prefixLen == suffixLen:
+          if prefixMatch:
+            partialMatch = [
+              f"\r Partial Fit: {clean}{PK[:6]}—",
+              f"\n  Public Key: {PK}",
+              f"\n  Secret Key: {keypair.secret}\n"
+            ]
+            sys.stdout.write("".join(partialMatch))
+          if suffixMatch:
+            partialMatch = [
+              f"\r Partial Fit: {clean}—{PK[-6:]}",
+              f"\n  Public Key: {PK}",
+              f"\n  Secret Key: {keypair.secret}\n"
+            ]
+            sys.stdout.write("".join(partialMatch))
+        elif searchingMoreForPrefix:
+          if prefixMatch:
+            partialMatch = [
+              f"\r Partial Fit: {clean}{PK[:6]}—",
+              f"\n  Public Key: {PK}",
+              f"\n  Secret Key: {keypair.secret}\n"
+            ]
+            sys.stdout.write("".join(partialMatch))
+        elif suffixMatch:
+          partialMatch = [
+            f"\r Partial Fit: {clean}—{PK[-6:]}",
+            f"\n  Public Key: {PK}",
+            f"\n  Secret Key: {keypair.secret}\n"
+          ]
+          sys.stdout.write("".join(partialMatch))
   except KeyboardInterrupt:
     sys.exit("\nUser ended keypair search.")
 
