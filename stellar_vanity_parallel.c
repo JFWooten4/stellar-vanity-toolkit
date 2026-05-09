@@ -1,12 +1,18 @@
 #include <sodium.h>
-#include <windows.h>
-#include <process.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
 
 #define STRKEY_RAW_LEN 35
 #define STRKEY_ENCODED_LEN 56
@@ -22,7 +28,12 @@ typedef struct {
   char suffix[64];
   size_t prefix_len;
   size_t suffix_len;
+#ifdef _WIN32
   volatile LONG found;
+#else
+  pthread_mutex_t found_mutex;
+  int found;
+#endif
   char found_public[STRKEY_ENCODED_LEN + 1];
   char found_secret[STRKEY_ENCODED_LEN + 1];
 } SearchContext;
@@ -144,11 +155,56 @@ static void validate_search_span(size_t total_len) {
   }
 }
 
+#ifdef _WIN32
+static bool search_is_found(SearchContext *ctx) {
+  return InterlockedCompareExchange(&ctx->found, 0, 0) != 0;
+}
+
+static bool claim_found(SearchContext *ctx) {
+  return InterlockedCompareExchange(&ctx->found, 1, 0) == 0;
+}
+
+static void mark_found(SearchContext *ctx) {
+  InterlockedExchange(&ctx->found, 1);
+}
+
 static unsigned int __stdcall search_worker(void *arg) {
+#else
+static bool search_is_found(SearchContext *ctx) {
+  bool found;
+
+  pthread_mutex_lock(&ctx->found_mutex);
+  found = ctx->found != 0;
+  pthread_mutex_unlock(&ctx->found_mutex);
+
+  return found;
+}
+
+static bool claim_found(SearchContext *ctx) {
+  bool claimed = false;
+
+  pthread_mutex_lock(&ctx->found_mutex);
+  if (!ctx->found) {
+    ctx->found = 1;
+    claimed = true;
+  }
+  pthread_mutex_unlock(&ctx->found_mutex);
+
+  return claimed;
+}
+
+static void mark_found(SearchContext *ctx) {
+  pthread_mutex_lock(&ctx->found_mutex);
+  ctx->found = 1;
+  pthread_mutex_unlock(&ctx->found_mutex);
+}
+
+static void *search_worker(void *arg) {
+#endif
   WorkerArgs *worker = (WorkerArgs *)arg;
   SearchContext *ctx = worker->ctx;
 
-  while (InterlockedCompareExchange(&ctx->found, 0, 0) == 0) {
+  while (!search_is_found(ctx)) {
     uint8_t seed[crypto_sign_SEEDBYTES];
     uint8_t public_key[crypto_sign_PUBLICKEYBYTES];
     uint8_t secret_key[crypto_sign_SECRETKEYBYTES];
@@ -161,7 +217,7 @@ static unsigned int __stdcall search_worker(void *arg) {
     worker->attempts++;
 
     if (matches_search(ctx, public_strkey)) {
-      if (InterlockedCompareExchange(&ctx->found, 1, 0) == 0) {
+      if (claim_found(ctx)) {
         strkey_encode(VERSION_SEED, seed, secret_strkey);
         memcpy(ctx->found_public, public_strkey, sizeof(ctx->found_public));
         memcpy(ctx->found_secret, secret_strkey, sizeof(ctx->found_secret));
@@ -170,14 +226,23 @@ static unsigned int __stdcall search_worker(void *arg) {
 
       sodium_memzero(seed, sizeof(seed));
       sodium_memzero(secret_key, sizeof(secret_key));
+#ifdef _WIN32
       return 0;
+#else
+      return NULL;
+#endif
     }
   }
 
+#ifdef _WIN32
   return 0;
+#else
+  return NULL;
+#endif
 }
 
 static unsigned int default_thread_count(void) {
+#ifdef _WIN32
   SYSTEM_INFO info;
   GetSystemInfo(&info);
 
@@ -188,6 +253,17 @@ static unsigned int default_thread_count(void) {
   return info.dwNumberOfProcessors > MAX_THREADS
     ? MAX_THREADS
     : info.dwNumberOfProcessors;
+#else
+  long processors = sysconf(_SC_NPROCESSORS_ONLN);
+
+  if (processors <= 0) {
+    return 1;
+  }
+
+  return processors > MAX_THREADS
+    ? MAX_THREADS
+    : (unsigned int)processors;
+#endif
 }
 
 static unsigned int parse_thread_count(const char *value) {
@@ -255,6 +331,12 @@ int main(int argc, char **argv) {
 
   SearchContext ctx;
   memset(&ctx, 0, sizeof(ctx));
+#ifndef _WIN32
+  if (pthread_mutex_init(&ctx.found_mutex, NULL) != 0) {
+    fprintf(stderr, "Failed to initialize thread lock.\n");
+    return 1;
+  }
+#endif
   snprintf(ctx.full_prefix, sizeof(ctx.full_prefix), "G%s", prefix_after_g);
   snprintf(ctx.suffix, sizeof(ctx.suffix), "%s", suffix);
   ctx.prefix_len = strlen(ctx.full_prefix);
@@ -263,8 +345,10 @@ int main(int argc, char **argv) {
   printf("Searching for: %s...%s\n", ctx.full_prefix, ctx.suffix);
   printf("Threads: %u\n", thread_count);
 
-  HANDLE handles[MAX_THREADS];
   WorkerArgs workers[MAX_THREADS];
+
+#ifdef _WIN32
+  HANDLE handles[MAX_THREADS];
 
   for (unsigned int i = 0; i < thread_count; i++) {
     workers[i].ctx = &ctx;
@@ -280,7 +364,7 @@ int main(int argc, char **argv) {
 
     if (handles[i] == NULL) {
       fprintf(stderr, "Failed to start worker thread.\n");
-      InterlockedExchange(&ctx.found, 1);
+      mark_found(&ctx);
 
       for (unsigned int j = 0; j < i; j++) {
         WaitForSingleObject(handles[j], INFINITE);
@@ -298,6 +382,32 @@ int main(int argc, char **argv) {
     total_attempts += workers[i].attempts;
     CloseHandle(handles[i]);
   }
+#else
+  pthread_t handles[MAX_THREADS];
+
+  for (unsigned int i = 0; i < thread_count; i++) {
+    workers[i].ctx = &ctx;
+    workers[i].attempts = 0;
+
+    if (pthread_create(&handles[i], NULL, search_worker, &workers[i]) != 0) {
+      fprintf(stderr, "Failed to start worker thread.\n");
+      mark_found(&ctx);
+
+      for (unsigned int j = 0; j < i; j++) {
+        pthread_join(handles[j], NULL);
+      }
+
+      pthread_mutex_destroy(&ctx.found_mutex);
+      return 1;
+    }
+  }
+
+  uint64_t total_attempts = 0;
+  for (unsigned int i = 0; i < thread_count; i++) {
+    pthread_join(handles[i], NULL);
+    total_attempts += workers[i].attempts;
+  }
+#endif
 
   if (ctx.found) {
     printf("\nKeypair found:\n");
@@ -306,9 +416,15 @@ int main(int argc, char **argv) {
     printf("Secret Key: %s\n", ctx.found_secret);
 
     sodium_memzero(ctx.found_secret, sizeof(ctx.found_secret));
+#ifndef _WIN32
+    pthread_mutex_destroy(&ctx.found_mutex);
+#endif
     return 0;
   }
 
   fprintf(stderr, "Search stopped without a result.\n");
+#ifndef _WIN32
+  pthread_mutex_destroy(&ctx.found_mutex);
+#endif
   return 1;
 }

@@ -4,4 +4,5 @@ __pycache__/
 vendor/
 libsodium-msvc.zip
 *.exe
+stellar_vanity_parallel
 *.obj

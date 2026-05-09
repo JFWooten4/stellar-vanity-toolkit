@@ -96,8 +96,7 @@ DRS DUNA
 
 ### Windows Parallel Build
 
-The parallel C version is Windows-only and uses all detected CPU cores by
-default, up to 64 threads.
+The Windows build uses all detected CPU cores by default, up to 64 threads.
 
 From PowerShell:
 
@@ -112,10 +111,10 @@ To force a specific thread count:
 .\stellar_vanity_parallel.exe DRS DUNA 16
 ```
 
-### macOS Build
+### macOS Parallel Build
 
-The checked-in parallel C file uses Windows threading APIs, so on macOS build
-the portable single-process C searcher and run one worker per logical CPU core.
+The parallel C version uses all detected logical CPU cores by default, up to 64
+threads.
 
 Install dependencies:
 
@@ -126,32 +125,26 @@ brew install libsodium pkg-config
 Build:
 
 ```zsh
-clang -O3 stellar_vanity.c -o stellar_vanity $(pkg-config --cflags --libs libsodium)
+./build_stellar_vanity_parallel.sh
 ```
 
-Run one search:
+Run with all detected logical CPU cores:
 
 ```zsh
-./stellar_vanity DRS DUNA
+./stellar_vanity_parallel DRS DUNA
 ```
 
-Use all logical CPU cores on macOS:
+To force a specific thread count:
 
 ```zsh
-rm -f vanity-*.log
-pids=()
-for i in $(seq 1 $(sysctl -n hw.logicalcpu)); do
-  ./stellar_vanity DRS DUNA > "vanity-$i.log" &
-  pids+=($!)
-done
-
-wait -n
-kill $pids 2>/dev/null
-grep -h -A5 "Keypair found" vanity-*.log
+./stellar_vanity_parallel DRS DUNA 16
 ```
 
-The first worker to find a matching keypair prints the result to its log, then
-the command stops the remaining workers and displays the found keypair.
+To build manually:
+
+```zsh
+cc -O3 -pthread stellar_vanity_parallel.c -o stellar_vanity_parallel $(pkg-config --cflags --libs libsodium)
+```
 
 ## Disclaimer
 
