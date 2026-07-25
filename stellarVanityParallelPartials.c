@@ -52,7 +52,7 @@ typedef struct {
   uint64_t attempts;
 } WorkerArgs;
 
-static bool is_base32_string(const char *s) {
+static bool isBase32String(const char *s) {
   for (size_t i = 0; s[i] != '\0'; i++) {
     char c = (char)toupper((unsigned char)s[i]);
 
@@ -64,13 +64,13 @@ static bool is_base32_string(const char *s) {
   return true;
 }
 
-static void uppercase_in_place(char *s) {
+static void uppercaseInPlace(char *s) {
   for (size_t i = 0; s[i] != '\0'; i++) {
     s[i] = (char)toupper((unsigned char)s[i]);
   }
 }
 
-static uint16_t crc16_xmodem(const uint8_t *data, size_t len) {
+static uint16_t crc16Xmodem(const uint8_t *data, size_t len) {
   uint16_t crc = 0x0000;
 
   for (size_t i = 0; i < len; i++) {
@@ -89,7 +89,7 @@ static uint16_t crc16_xmodem(const uint8_t *data, size_t len) {
   return crc;
 }
 
-static void base32_encode_no_padding(
+static void base32EncodeNoPadding(
   const uint8_t *data,
   size_t dataLen,
   char *out
@@ -117,21 +117,21 @@ static void base32_encode_no_padding(
   out[outPos] = '\0';
 }
 
-static void strkey_encode(uint8_t version, const uint8_t raw[32], char out[57]) {
+static void strkeyEncode(uint8_t version, const uint8_t raw[32], char out[57]) {
   uint8_t payload[STRKEY_RAW_LEN];
 
   payload[0] = version;
   memcpy(payload + 1, raw, 32);
 
-  uint16_t checksum = crc16_xmodem(payload, 33);
+  uint16_t checksum = crc16Xmodem(payload, 33);
 
   payload[33] = (uint8_t)(checksum & 0xff);
   payload[34] = (uint8_t)((checksum >> 8) & 0xff);
 
-  base32_encode_no_padding(payload, STRKEY_RAW_LEN, out);
+  base32EncodeNoPadding(payload, STRKEY_RAW_LEN, out);
 }
 
-static bool matches_search(const SearchContext *ctx, const char *publicStrkey) {
+static bool matchesSearch(const SearchContext *ctx, const char *publicStrkey) {
   if (memcmp(publicStrkey, ctx->fullPrefix, ctx->prefixLen) != 0) {
     return false;
   }
@@ -147,7 +147,7 @@ static bool matches_search(const SearchContext *ctx, const char *publicStrkey) {
   ) == 0;
 }
 
-static void validate_search_span(size_t totalLen) {
+static void validateSearchSpan(size_t totalLen) {
   if (totalLen > 10) {
     fprintf(stderr, "Try shorter inputs. Each extra character makes the search 32x harder.\n");
     exit(1);
@@ -165,7 +165,7 @@ static void validate_search_span(size_t totalLen) {
 }
 
 #ifdef STELLAR_VANITY_PARTIALS
-static bool init_output_lock(SearchContext *ctx) {
+static bool initOutputLock(SearchContext *ctx) {
 #ifdef _WIN32
   InitializeCriticalSection(&ctx->outputLock);
   return true;
@@ -174,7 +174,7 @@ static bool init_output_lock(SearchContext *ctx) {
 #endif
 }
 
-static void destroy_output_lock(SearchContext *ctx) {
+static void destroyOutputLock(SearchContext *ctx) {
 #ifdef _WIN32
   DeleteCriticalSection(&ctx->outputLock);
 #else
@@ -182,7 +182,7 @@ static void destroy_output_lock(SearchContext *ctx) {
 #endif
 }
 
-static void show_partial(
+static void showPartial(
   SearchContext *ctx,
   const char *publicStrkey,
   bool prefixMatch,
@@ -221,21 +221,21 @@ static void show_partial(
 #endif
 
 #ifdef _WIN32
-static bool search_is_found(SearchContext *ctx) {
+static bool searchIsFound(SearchContext *ctx) {
   return InterlockedCompareExchange(&ctx->found, 0, 0) != 0;
 }
 
-static bool claim_found(SearchContext *ctx) {
+static bool claimFound(SearchContext *ctx) {
   return InterlockedCompareExchange(&ctx->found, 1, 0) == 0;
 }
 
-static void mark_found(SearchContext *ctx) {
+static void markFound(SearchContext *ctx) {
   InterlockedExchange(&ctx->found, 1);
 }
 
-static unsigned int __stdcall search_worker(void *arg) {
+static unsigned int __stdcall searchWorker(void *arg) {
 #else
-static bool search_is_found(SearchContext *ctx) {
+static bool searchIsFound(SearchContext *ctx) {
   bool found;
 
   pthread_mutex_lock(&ctx->foundMutex);
@@ -245,7 +245,7 @@ static bool search_is_found(SearchContext *ctx) {
   return found;
 }
 
-static bool claim_found(SearchContext *ctx) {
+static bool claimFound(SearchContext *ctx) {
   bool claimed = false;
 
   pthread_mutex_lock(&ctx->foundMutex);
@@ -258,18 +258,18 @@ static bool claim_found(SearchContext *ctx) {
   return claimed;
 }
 
-static void mark_found(SearchContext *ctx) {
+static void markFound(SearchContext *ctx) {
   pthread_mutex_lock(&ctx->foundMutex);
   ctx->found = 1;
   pthread_mutex_unlock(&ctx->foundMutex);
 }
 
-static void *search_worker(void *arg) {
+static void *searchWorker(void *arg) {
 #endif
   WorkerArgs *worker = (WorkerArgs *)arg;
   SearchContext *ctx = worker->ctx;
 
-  while (!search_is_found(ctx)) {
+  while (!searchIsFound(ctx)) {
     uint8_t seed[crypto_sign_SEEDBYTES];
     uint8_t publicKey[crypto_sign_PUBLICKEYBYTES];
     uint8_t secretKey[crypto_sign_SECRETKEYBYTES];
@@ -278,12 +278,12 @@ static void *search_worker(void *arg) {
 
     randombytes_buf(seed, sizeof(seed));
     crypto_sign_seed_keypair(publicKey, secretKey, seed);
-    strkey_encode(VERSION_ACCOUNT_ID, publicKey, publicStrkey);
+    strkeyEncode(VERSION_ACCOUNT_ID, publicKey, publicStrkey);
     worker->attempts++;
 
-    if (matches_search(ctx, publicStrkey)) {
-      if (claim_found(ctx)) {
-        strkey_encode(VERSION_SEED, seed, secretStrkey);
+    if (matchesSearch(ctx, publicStrkey)) {
+      if (claimFound(ctx)) {
+        strkeyEncode(VERSION_SEED, seed, secretStrkey);
         memcpy(ctx->foundPublic, publicStrkey, sizeof(ctx->foundPublic));
         memcpy(ctx->foundSecret, secretStrkey, sizeof(ctx->foundSecret));
         sodium_memzero(secretStrkey, sizeof(secretStrkey));
@@ -308,7 +308,7 @@ static void *search_worker(void *arg) {
         ctx->suffix,
         ctx->suffixLen
       ) == 0;
-    show_partial(ctx, publicStrkey, prefixMatch, suffixMatch);
+    showPartial(ctx, publicStrkey, prefixMatch, suffixMatch);
 #endif
   }
 
@@ -319,7 +319,7 @@ static void *search_worker(void *arg) {
 #endif
 }
 
-static unsigned int default_thread_count(void) {
+static unsigned int defaultThreadCount(void) {
 #ifdef _WIN32
   SYSTEM_INFO info;
   GetSystemInfo(&info);
@@ -344,7 +344,7 @@ static unsigned int default_thread_count(void) {
 #endif
 }
 
-static unsigned int parse_thread_count(const char *value) {
+static unsigned int parseThreadCount(const char *value) {
   char *end = NULL;
   unsigned long parsed = strtoul(value, &end, 10);
 
@@ -379,10 +379,10 @@ int main(int argc, char **argv) {
   snprintf(prefixAfterG, sizeof(prefixAfterG), "%s", argv[1]);
   snprintf(suffix, sizeof(suffix), "%s", argv[2]);
 
-  uppercase_in_place(prefixAfterG);
-  uppercase_in_place(suffix);
+  uppercaseInPlace(prefixAfterG);
+  uppercaseInPlace(suffix);
 
-  if (!is_base32_string(prefixAfterG) || !is_base32_string(suffix)) {
+  if (!isBase32String(prefixAfterG) || !isBase32String(suffix)) {
     fprintf(stderr, "Try base32 inputs.\n");
     return 1;
   }
@@ -399,13 +399,13 @@ int main(int argc, char **argv) {
   }
 
   unsigned int threadCount = argc == 4
-    ? parse_thread_count(argv[3])
-    : default_thread_count();
+    ? parseThreadCount(argv[3])
+    : defaultThreadCount();
 
   size_t prefixAfterGLen = strlen(prefixAfterG);
   size_t suffixLen = strlen(suffix);
 
-  validate_search_span(prefixAfterGLen + suffixLen);
+  validateSearchSpan(prefixAfterGLen + suffixLen);
 
   SearchContext ctx;
   memset(&ctx, 0, sizeof(ctx));
@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
   }
 #endif
 #ifdef STELLAR_VANITY_PARTIALS
-  if (!init_output_lock(&ctx)) {
+  if (!initOutputLock(&ctx)) {
     fprintf(stderr, "Failed to initialize output lock.\n");
 #ifndef _WIN32
     pthread_mutex_destroy(&ctx.foundMutex);
@@ -443,7 +443,7 @@ int main(int argc, char **argv) {
     handles[i] = (HANDLE)_beginthreadex(
       NULL,
       0,
-      search_worker,
+      searchWorker,
       &workers[i],
       0,
       NULL
@@ -451,7 +451,7 @@ int main(int argc, char **argv) {
 
     if (handles[i] == NULL) {
       fprintf(stderr, "Failed to start worker thread.\n");
-      mark_found(&ctx);
+      markFound(&ctx);
 
       for (unsigned int j = 0; j < i; j++) {
         WaitForSingleObject(handles[j], INFINITE);
@@ -459,7 +459,7 @@ int main(int argc, char **argv) {
       }
 
 #ifdef STELLAR_VANITY_PARTIALS
-      destroy_output_lock(&ctx);
+      destroyOutputLock(&ctx);
 #endif
       return 1;
     }
@@ -479,16 +479,16 @@ int main(int argc, char **argv) {
     workers[i].ctx = &ctx;
     workers[i].attempts = 0;
 
-    if (pthread_create(&handles[i], NULL, search_worker, &workers[i]) != 0) {
+    if (pthread_create(&handles[i], NULL, searchWorker, &workers[i]) != 0) {
       fprintf(stderr, "Failed to start worker thread.\n");
-      mark_found(&ctx);
+      markFound(&ctx);
 
       for (unsigned int j = 0; j < i; j++) {
         pthread_join(handles[j], NULL);
       }
 
 #ifdef STELLAR_VANITY_PARTIALS
-      destroy_output_lock(&ctx);
+      destroyOutputLock(&ctx);
 #endif
       pthread_mutex_destroy(&ctx.foundMutex);
       return 1;
@@ -510,7 +510,7 @@ int main(int argc, char **argv) {
 
     sodium_memzero(ctx.foundSecret, sizeof(ctx.foundSecret));
 #ifdef STELLAR_VANITY_PARTIALS
-    destroy_output_lock(&ctx);
+    destroyOutputLock(&ctx);
 #endif
 #ifndef _WIN32
     pthread_mutex_destroy(&ctx.foundMutex);
@@ -520,7 +520,7 @@ int main(int argc, char **argv) {
 
   fprintf(stderr, "Search stopped without a result.\n");
 #ifdef STELLAR_VANITY_PARTIALS
-  destroy_output_lock(&ctx);
+  destroyOutputLock(&ctx);
 #endif
 #ifndef _WIN32
   pthread_mutex_destroy(&ctx.foundMutex);

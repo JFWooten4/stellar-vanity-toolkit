@@ -6,12 +6,12 @@ variant=${1:-}
 
 case "$variant" in
   "")
-    source_file=stellar_vanity_parallel.c
-    output_file=stellar_vanity_parallel
+    source_file=stellarVanityParallel.c
+    output_file=stellarVanityParallel
     ;;
   --partials)
-    source_file=stellar_vanity_parallel_partials.c
-    output_file=stellar_vanity_parallel_partials
+    source_file=stellarVanityParallelPartials.c
+    output_file=stellarVanityParallelPartials
     ;;
   *)
     echo "Usage: $0 [--partials]" >&2

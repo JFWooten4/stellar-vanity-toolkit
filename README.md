@@ -18,9 +18,9 @@ searchers for single-core and parallel workloads.
 
 | Tool | Purpose |
 | --- | --- |
-| `stellar_vanity.c` | Faster single-threaded prefix and suffix search |
-| `stellar_vanity_parallel.c` | Multi-threaded prefix and suffix search |
-| `stellar_vanity_parallel_partials.c` | Multi-threaded search with live partial matches |
+| `stellarVanity.c` | Faster single-threaded prefix and suffix search |
+| `stellarVanityParallel.c` | Multi-threaded prefix and suffix search |
+| `stellarVanityParallelPartials.c` | Multi-threaded search with live partial matches |
 
 The keypair searchers repeatedly generate complete random keypairs and discard
 the ones that do not match. They never construct a secret key from the chosen
@@ -235,15 +235,15 @@ moving it into a trusted offline environment.
 #### Parallel build
 
 ```powershell
-.\build_stellar_vanity_parallel.ps1
-.\stellar_vanity_parallel.exe DRS DUNA
+.\buildStellarVanityParallel.ps1
+.\stellarVanityParallel.exe DRS DUNA
 ```
 
 The parallel search uses the detected logical CPU count, capped at 64 threads.
 Pass a number from 1 through 64 to override it:
 
 ```powershell
-.\stellar_vanity_parallel.exe DRS DUNA 16
+.\stellarVanityParallel.exe DRS DUNA 16
 ```
 
 #### Parallel build with partial matches
@@ -252,14 +252,14 @@ The partial-match variant is a separate executable, so the default parallel
 search remains focused on maximum throughput:
 
 ```powershell
-.\build_stellar_vanity_parallel.ps1 -Partials
-.\stellar_vanity_parallel_partials.exe DRS DUNA
+.\buildStellarVanityParallel.ps1 -Partials
+.\stellarVanityParallelPartials.exe DRS DUNA
 ```
 
 It accepts the same optional worker count:
 
 ```powershell
-.\stellar_vanity_parallel_partials.exe DRS DUNA 16
+.\stellarVanityParallelPartials.exe DRS DUNA 16
 ```
 
 Worker output is synchronized to keep partial results readable. Terminal I/O
@@ -271,14 +271,14 @@ secret key.
 #### Serial build
 
 ```powershell
-.\build_stellar_vanity.ps1
-.\stellar_vanity.exe DRS DUNA
+.\buildStellarVanity.ps1
+.\stellarVanity.exe DRS DUNA
 ```
 
 Enable partial-match output with:
 
 ```powershell
-.\stellar_vanity.exe DRS DUNA --partials
+.\stellarVanity.exe DRS DUNA --partials
 ```
 
 </details>
@@ -296,21 +296,21 @@ brew install libsodium pkg-config
 Build and run:
 
 ```zsh
-./build_stellar_vanity_parallel.sh
-./stellar_vanity_parallel DRS DUNA
+./buildStellarVanityParallel.sh
+./stellarVanityParallel DRS DUNA
 ```
 
 Specify a worker count when needed:
 
 ```zsh
-./stellar_vanity_parallel DRS DUNA 16
+./stellarVanityParallel DRS DUNA 16
 ```
 
 Build the separate partial-match variant with:
 
 ```zsh
-./build_stellar_vanity_parallel.sh --partials
-./stellar_vanity_parallel_partials DRS DUNA
+./buildStellarVanityParallel.sh --partials
+./stellarVanityParallelPartials DRS DUNA
 ```
 
 </details>
@@ -323,12 +323,12 @@ On Debian or Ubuntu:
 ```bash
 sudo apt update
 sudo apt install build-essential libsodium-dev pkg-config
-./build_stellar_vanity_parallel.sh
-./stellar_vanity_parallel DRS DUNA
+./buildStellarVanityParallel.sh
+./stellarVanityParallel DRS DUNA
 ```
 
 Pass `--partials` to the build script to produce
-`stellar_vanity_parallel_partials` instead.
+`stellarVanityParallelPartials` instead.
 
 For other distributions, install a C compiler, POSIX threads, libsodium
 development headers, and `pkg-config`, then run the same build script.
@@ -338,15 +338,15 @@ development headers, and `pkg-config`, then run the same build script.
 ### Manual parallel build
 
 ```bash
-cc -O3 -pthread stellar_vanity_parallel.c -o stellar_vanity_parallel \
+cc -O3 -pthread stellarVanityParallel.c -o stellarVanityParallel \
   $(pkg-config --cflags --libs libsodium)
 ```
 
 For the separate partial-match executable:
 
 ```bash
-cc -O3 -pthread stellar_vanity_parallel_partials.c \
-  -o stellar_vanity_parallel_partials \
+cc -O3 -pthread stellarVanityParallelPartials.c \
+  -o stellarVanityParallelPartials \
   $(pkg-config --cflags --libs libsodium)
 ```
 

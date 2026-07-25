@@ -5,6 +5,6 @@ offline-packages/
 vendor/
 libsodium-msvc.zip
 *.exe
-stellar_vanity_parallel
-stellar_vanity_parallel_partials
+stellarVanityParallel
+stellarVanityParallelPartials
 *.obj

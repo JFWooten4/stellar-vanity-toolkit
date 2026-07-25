@@ -1,3 +1,7 @@
+param(
+  [switch]$Partials
+)
+
 $ErrorActionPreference = "Stop"
 
 $libsodiumVersion = "1.0.21-stable"
@@ -8,6 +12,8 @@ $libsodiumDir = Join-Path $vendorDir "libsodium"
 $includeDir = Join-Path $libsodiumDir "include"
 $libDir = Join-Path $libsodiumDir "x64\Release\v143\static"
 $vcvars = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+$sourceFile = if ($Partials) { "stellarVanityParallelPartials.c" } else { "stellarVanityParallel.c" }
+$outputFile = if ($Partials) { "stellarVanityParallelPartials.exe" } else { "stellarVanityParallel.exe" }
 
 if (!(Test-Path $vcvars)) {
   throw "Visual Studio 2022 Build Tools with C++ tools were not found."
@@ -38,7 +44,7 @@ if (!(Test-Path (Join-Path $includeDir "sodium.h")) -or !(Test-Path (Join-Path $
 
 $buildCommand = @(
   "call `"$vcvars`" >nul",
-  "cl /nologo /O2 /D SODIUM_STATIC /I `"$includeDir`" stellar_vanity.c /Fe:stellar_vanity.exe /link /LIBPATH:`"$libDir`" libsodium.lib advapi32.lib ws2_32.lib user32.lib"
+  "cl /nologo /O2 /D SODIUM_STATIC /I `"$includeDir`" $sourceFile /Fe:$outputFile /link /LIBPATH:`"$libDir`" libsodium.lib advapi32.lib ws2_32.lib user32.lib"
 ) -join " && "
 
 cmd.exe /d /c $buildCommand

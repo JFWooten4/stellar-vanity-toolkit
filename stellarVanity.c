@@ -15,7 +15,7 @@
 
 static const char *BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-static bool is_base32_string(const char *s) {
+static bool isBase32String(const char *s) {
   for (size_t i = 0; s[i] != '\0'; i++) {
     char c = (char)toupper((unsigned char)s[i]);
 
@@ -27,13 +27,13 @@ static bool is_base32_string(const char *s) {
   return true;
 }
 
-static void uppercase_in_place(char *s) {
+static void uppercaseInPlace(char *s) {
   for (size_t i = 0; s[i] != '\0'; i++) {
     s[i] = (char)toupper((unsigned char)s[i]);
   }
 }
 
-static uint16_t crc16_xmodem(const uint8_t *data, size_t len) {
+static uint16_t crc16Xmodem(const uint8_t *data, size_t len) {
   uint16_t crc = 0x0000;
 
   for (size_t i = 0; i < len; i++) {
@@ -52,7 +52,7 @@ static uint16_t crc16_xmodem(const uint8_t *data, size_t len) {
   return crc;
 }
 
-static void base32_encode_no_padding(
+static void base32EncodeNoPadding(
   const uint8_t *data,
   size_t dataLen,
   char *out
@@ -80,26 +80,26 @@ static void base32_encode_no_padding(
   out[outPos] = '\0';
 }
 
-static void strkey_encode(uint8_t version, const uint8_t raw[32], char out[57]) {
+static void strkeyEncode(uint8_t version, const uint8_t raw[32], char out[57]) {
   uint8_t payload[STRKEY_RAW_LEN];
 
   payload[0] = version;
   memcpy(payload + 1, raw, 32);
 
-  uint16_t checksum = crc16_xmodem(payload, 33);
+  uint16_t checksum = crc16Xmodem(payload, 33);
 
   // Stellar stores checksum little-endian.
   payload[33] = (uint8_t)(checksum & 0xff);
   payload[34] = (uint8_t)((checksum >> 8) & 0xff);
 
-  base32_encode_no_padding(payload, STRKEY_RAW_LEN, out);
+  base32EncodeNoPadding(payload, STRKEY_RAW_LEN, out);
 }
 
-static bool starts_with(const char *s, const char *prefix) {
+static bool startsWith(const char *s, const char *prefix) {
   return strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
-static bool ends_with(const char *s, const char *suffix) {
+static bool endsWith(const char *s, const char *suffix) {
   size_t sLen = strlen(s);
   size_t suffixLen = strlen(suffix);
 
@@ -110,7 +110,7 @@ static bool ends_with(const char *s, const char *suffix) {
   return strcmp(s + sLen - suffixLen, suffix) == 0;
 }
 
-static void validate_search_span(size_t totalLen) {
+static void validateSearchSpan(size_t totalLen) {
   if (totalLen > 7) {
     fprintf(stderr, "Try shorter inputs unless you are ready to wait a very long time.\n");
     exit(1);
@@ -148,8 +148,8 @@ int main(int argc, char **argv) {
   snprintf(prefixAfterG, sizeof(prefixAfterG), "%s", argv[1]);
   snprintf(suffix, sizeof(suffix), "%s", argv[2]);
 
-  uppercase_in_place(prefixAfterG);
-  uppercase_in_place(suffix);
+  uppercaseInPlace(prefixAfterG);
+  uppercaseInPlace(suffix);
 
   if (argc == 4 && strcmp(argv[3], "--partials") != 0) {
     usage(argv[0]);
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 
   bool showPartials = argc == 4;
 
-  if (!is_base32_string(prefixAfterG) || !is_base32_string(suffix)) {
+  if (!isBase32String(prefixAfterG) || !isBase32String(suffix)) {
     fprintf(stderr, "Try base32 inputs.\n");
     return 1;
   }
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
   size_t prefixLen = strlen(prefixAfterG);
   size_t suffixLen = strlen(suffix);
 
-  validate_search_span(prefixLen + suffixLen);
+  validateSearchSpan(prefixLen + suffixLen);
 
   char fullPrefix[66];
   snprintf(fullPrefix, sizeof(fullPrefix), "G%s", prefixAfterG);
@@ -197,15 +197,15 @@ int main(int argc, char **argv) {
     randombytes_buf(seed, sizeof(seed));
     crypto_sign_seed_keypair(publicKey, secretKey, seed);
 
-    strkey_encode(VERSION_ACCOUNT_ID, publicKey, publicStrkey);
+    strkeyEncode(VERSION_ACCOUNT_ID, publicKey, publicStrkey);
 
     attempts++;
 
-    bool prefixMatch = starts_with(publicStrkey, fullPrefix);
-    bool suffixMatch = ends_with(publicStrkey, suffix);
+    bool prefixMatch = startsWith(publicStrkey, fullPrefix);
+    bool suffixMatch = endsWith(publicStrkey, suffix);
 
     if (prefixMatch && suffixMatch) {
-      strkey_encode(VERSION_SEED, seed, secretStrkey);
+      strkeyEncode(VERSION_SEED, seed, secretStrkey);
 
       printf("\n\nKeypair found:\n");
       printf("Attempts:   %llu\n", (unsigned long long)attempts);
