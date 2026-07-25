@@ -264,9 +264,9 @@ It accepts the same optional worker count:
 
 Worker output is synchronized to keep partial results readable. Terminal I/O
 still adds overhead, especially for short patterns that match frequently.
-Each partial line shows a public key matching the longer requested side
-(prefix when the two sides are equal). Only the final full match includes a
-secret key.
+Each partial result includes the complete public and secret key for a keypair
+matching the longer requested side (prefix when the two sides are equal).
+Treat every partial result as sensitive.
 
 #### Serial build
 

@@ -185,6 +185,7 @@ static void destroyOutputLock(SearchContext *ctx) {
 static void showPartial(
   SearchContext *ctx,
   const char *publicStrkey,
+  const uint8_t seed[crypto_sign_SEEDBYTES],
   bool prefixMatch,
   bool suffixMatch
 ) {
@@ -195,22 +196,20 @@ static void showPartial(
     return;
   }
 
+  char secretStrkey[STRKEY_ENCODED_LEN + 1];
+  strkeyEncode(VERSION_SEED, seed, secretStrkey);
+
 #ifdef _WIN32
   EnterCriticalSection(&ctx->outputLock);
 #else
   pthread_mutex_lock(&ctx->outputMutex);
 #endif
 
-  if (preferPrefix) {
-    printf(
-      "\rPartial Fit: %s...%s",
-      ctx->fullPrefix,
-      publicStrkey + STRKEY_ENCODED_LEN - 6
-    );
-  } else {
-    printf("\rPartial Fit: %.6s...%s", publicStrkey, ctx->suffix);
-  }
+  printf("\nPartial keypair:\n");
+  printf("Public Key: %s\n", publicStrkey);
+  printf("Secret Key: %s\n", secretStrkey);
   fflush(stdout);
+  sodium_memzero(secretStrkey, sizeof(secretStrkey));
 
 #ifdef _WIN32
   LeaveCriticalSection(&ctx->outputLock);
@@ -308,7 +307,7 @@ static void *searchWorker(void *arg) {
         ctx->suffix,
         ctx->suffixLen
       ) == 0;
-    showPartial(ctx, publicStrkey, prefixMatch, suffixMatch);
+    showPartial(ctx, publicStrkey, seed, prefixMatch, suffixMatch);
 #endif
   }
 

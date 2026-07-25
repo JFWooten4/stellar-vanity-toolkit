@@ -220,12 +220,17 @@ int main(int argc, char **argv) {
     }
 
     if (showPartials) {
-      if (prefixLen >= suffixLen && prefixMatch) {
-        printf("\rPartial Fit: %s...%s", fullPrefix, publicStrkey + STRKEY_ENCODED_LEN - 6);
+      bool partialMatch =
+        (prefixLen >= suffixLen && prefixMatch) ||
+        (suffixLen > prefixLen && suffixMatch);
+
+      if (partialMatch) {
+        strkeyEncode(VERSION_SEED, seed, secretStrkey);
+        printf("\nPartial keypair:\n");
+        printf("Public Key: %s\n", publicStrkey);
+        printf("Secret Key: %s\n", secretStrkey);
         fflush(stdout);
-      } else if (suffixLen > prefixLen && suffixMatch) {
-        printf("\rPartial Fit: %.6s...%s", publicStrkey, suffix);
-        fflush(stdout);
+        sodium_memzero(secretStrkey, sizeof(secretStrkey));
       }
     }
 
