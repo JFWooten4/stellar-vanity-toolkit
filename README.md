@@ -4,11 +4,6 @@ Generate Stellar public addresses with a chosen prefix, suffix, or embedded
 phrase. The toolkit includes an accessible Python implementation and faster C
 searchers for single-core and parallel workloads.
 
-> [!CAUTION]
-> This project handles cryptographic secret keys and has not undergone an
-> independent security audit. Use it for experimentation and education. Do not
-> use generated keys to protect funds you cannot afford to lose.
-
 ## What this toolkit includes
 
 | Tool | Purpose | Produces a usable secret key? |
