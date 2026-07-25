@@ -6,14 +6,21 @@ searchers for single-core and parallel workloads.
 
 ## What this toolkit includes
 
-| Tool | Purpose | Produces a usable secret key? |
-| --- | --- | --- |
-| `generateVanityKeypair.py` | Interactive prefix and suffix search in Python | Yes |
-| `stellar_vanity.c` | Faster single-threaded prefix and suffix search | Yes |
-| `stellar_vanity_parallel.c` | Multi-threaded prefix and suffix search | Yes |
-| `stellar_vanity_parallel_partials.c` | Multi-threaded search with live partial matches | Yes |
-| `generateVanityPublicKey.py` | Inserts a phrase into a checksum-valid public address | **No** |
-| `configureVanitySigners.py` | Reconfigures signers on a funded Stellar account | Uses an existing key; advanced and high risk |
+### Python
+
+| Tool | Purpose |
+| --- | --- |
+| `generateVanityKeypair.py` | Interactive prefix and suffix search in Python |
+| `generateVanityPublicKey.py` | Inserts a phrase into a checksum-valid public address |
+| `configureVanitySigners.py` | Reconfigures signers on a funded Stellar account |
+
+### C
+
+| Tool | Purpose |
+| --- | --- |
+| `stellar_vanity.c` | Faster single-threaded prefix and suffix search |
+| `stellar_vanity_parallel.c` | Multi-threaded prefix and suffix search |
+| `stellar_vanity_parallel_partials.c` | Multi-threaded search with live partial matches |
 
 The keypair searchers repeatedly generate complete random keypairs and discard
 the ones that do not match. They never construct a secret key from the chosen
