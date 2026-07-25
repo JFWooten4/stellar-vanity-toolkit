@@ -52,23 +52,56 @@ searchers. It creates a checksum-valid public address without finding its
 corresponding secret key. No one is expected to be able to sign for that
 address. Use its output only for non-funded demonstrations.
 
-`configureVanitySigners.py` signs and can submit a transaction directly to the
-Stellar public network; it is not configured for testnet. It changes account
-authorization and can permanently remove access if a signer is incorrect,
-unavailable, or not backed up. Review the source, inspect the generated XDR,
-and understand Stellar signer weights and thresholds before considering it. It
-is not part of the quick-start workflow below.
+`configureVanitySigners.py` signs and submits a transaction directly to the
+Stellar public network; it is not configured for testnet or offline use. It
+changes account authorization and can permanently remove access if a signer is
+incorrect, unavailable, or not backed up. Review the source, inspect the
+generated XDR, and understand Stellar signer weights and thresholds before
+considering it. It is not part of the quick-start workflow below.
 
-The Windows C build scripts download a pinned libsodium archive over HTTPS when
-the dependency is not already present. They do not currently verify the
-archive with a published checksum. Review the scripts and dependency source if
-your threat model requires supply-chain verification.
+## Network and offline behavior
+
+The vanity-generation tools do not require a network connection after their
+dependencies are available locally.
+
+| Component | Network behavior |
+| --- | --- |
+| Python keypair and public-key generators | No runtime network access |
+| C search executables | No runtime network access |
+| C build scripts | Never download; use only a local libsodium installation or archive |
+| `configureVanitySigners.py` | Requires public Horizon to load the account, fetch a fee, and submit the transaction |
+
+Documentation links and package-install examples may point to external sites,
+but the search programs themselves do not contact those sites. The signer
+configuration workflow is the one intentional exception and cannot complete
+offline because it modifies an account on the Stellar network.
+
+### Prepare Python packages for an offline computer
+
+On a connected computer with the same operating system, architecture, and
+Python version as the offline computer, download the pinned requirement and
+its dependencies:
+
+```bash
+python -m pip download --dest offline-packages -r requirements.txt
+```
+
+Copy this repository and the resulting `offline-packages` directory to the
+offline computer. Install without consulting a package index:
+
+```bash
+python -m pip install --no-index --find-links offline-packages -r requirements.txt
+```
+
+The `--no-index` option makes the offline guarantee explicit: installation
+fails instead of attempting a network request when a required package is
+missing.
 
 ## Python quick start
 
 ### Requirements
 
-- Python 3.9 or newer
+- Python 3.10 or newer
 - [`stellar-sdk`](https://stellar-sdk.readthedocs.io/)
 
 Use a virtual environment to keep the dependency isolated from the rest of
@@ -79,8 +112,7 @@ your system.
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install stellar-sdk
+python -m pip install -r requirements.txt
 ```
 
 If local policy blocks virtual-environment activation, allow scripts only for
@@ -96,8 +128,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install stellar-sdk
+python -m pip install -r requirements.txt
 ```
 
 ### Generate a vanity keypair
@@ -152,10 +183,17 @@ the suffix.
 
 - 64-bit Windows
 - Visual Studio 2022 Build Tools with the C++ build tools installed
-- PowerShell, `curl.exe`, and `tar.exe`
+- PowerShell and `tar.exe`
 
-The build scripts download and unpack libsodium into the ignored `vendor`
-directory when necessary.
+The build scripts never access the network. Before disconnecting, download the
+official `libsodium-1.0.21-stable-msvc.zip` archive and place it in the
+repository root as `libsodium-msvc.zip`. The first build extracts it into the
+ignored `vendor` directory. You can instead copy an already extracted
+`vendor/libsodium` directory with the repository.
+
+The scripts do not authenticate the archive. Verify the download using the
+signature information published with the official libsodium release before
+moving it into a trusted offline environment.
 
 ### Windows parallel build
 

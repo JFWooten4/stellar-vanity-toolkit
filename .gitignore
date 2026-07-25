@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+offline-packages/
 vendor/
 libsodium-msvc.zip
 *.exe

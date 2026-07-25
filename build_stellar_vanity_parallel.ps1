@@ -5,7 +5,6 @@ param(
 $ErrorActionPreference = "Stop"
 
 $libsodiumVersion = "1.0.21-stable"
-$libsodiumUrl = "https://download.libsodium.org/libsodium/releases/libsodium-$libsodiumVersion-msvc.zip"
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $archive = Join-Path $repoRoot "libsodium-msvc.zip"
 $vendorDir = Join-Path $repoRoot "vendor"
@@ -21,18 +20,26 @@ if (!(Test-Path $vcvars)) {
 }
 
 if (!(Test-Path (Join-Path $includeDir "sodium.h")) -or !(Test-Path (Join-Path $libDir "libsodium.lib"))) {
-  New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
-
   if (!(Test-Path $archive)) {
-    Write-Host "Downloading libsodium $libsodiumVersion..."
-    curl.exe -L $libsodiumUrl -o $archive
+    throw @"
+libsodium $libsodiumVersion was not found. No download was attempted.
+Before going offline, place the official Windows archive at:
+  $archive
+Then run this build script again.
+"@
   }
+
+  New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
 
   if (Test-Path $libsodiumDir) {
     Remove-Item -Recurse -Force $libsodiumDir
   }
 
   tar.exe -xf $archive -C $vendorDir
+}
+
+if (!(Test-Path (Join-Path $includeDir "sodium.h")) -or !(Test-Path (Join-Path $libDir "libsodium.lib"))) {
+  throw "The local libsodium archive did not contain the expected x64 v143 static library."
 }
 
 $buildCommand = @(
