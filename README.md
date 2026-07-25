@@ -16,6 +16,7 @@ searchers for single-core and parallel workloads.
 | `generateVanityKeypair.py` | Interactive prefix and suffix search in Python | Yes |
 | `stellar_vanity.c` | Faster single-threaded prefix and suffix search | Yes |
 | `stellar_vanity_parallel.c` | Multi-threaded prefix and suffix search | Yes |
+| `stellar_vanity_parallel_partials.c` | Multi-threaded search with live partial matches | Yes |
 | `generateVanityPublicKey.py` | Inserts a phrase into a checksum-valid public address | **No** |
 | `configureVanitySigners.py` | Reconfigures signers on a funded Stellar account | Uses an existing key; advanced and high risk |
 
@@ -141,8 +142,8 @@ for non-funded demonstrations where the address will never need to sign.
 The C searchers use
 [`libsodium`](https://doc.libsodium.org/) for random bytes and Ed25519 key
 generation. Choose the parallel version for normal use; choose the serial
-version when you need partial-match output or want to restrict the search to
-one worker.
+version when you want one worker, or choose the separate parallel-partials
+target when you want live partial-match output from multiple workers.
 
 Both programs accept the desired prefix without the leading `G`, followed by
 the suffix.
@@ -169,6 +170,28 @@ Pass a number from 1 through 64 to override it:
 ```powershell
 .\stellar_vanity_parallel.exe DRS DUNA 16
 ```
+
+### Windows parallel build with partial matches
+
+The partial-match variant is a separate executable, so the default parallel
+search remains focused on maximum throughput:
+
+```powershell
+.\build_stellar_vanity_parallel.ps1 -Partials
+.\stellar_vanity_parallel_partials.exe DRS DUNA
+```
+
+It accepts the same optional worker count:
+
+```powershell
+.\stellar_vanity_parallel_partials.exe DRS DUNA 16
+```
+
+Worker output is synchronized to keep partial results readable. Terminal I/O
+still adds overhead, especially for short patterns that match frequently.
+Each partial line shows a public key matching the longer requested side
+(prefix when the two sides are equal). Only the final full match includes a
+secret key.
 
 ### Windows serial build
 
@@ -205,6 +228,13 @@ Specify a worker count when needed:
 ./stellar_vanity_parallel DRS DUNA 16
 ```
 
+Build the separate partial-match variant with:
+
+```zsh
+./build_stellar_vanity_parallel.sh --partials
+./stellar_vanity_parallel_partials DRS DUNA
+```
+
 ### Linux parallel build
 
 On Debian or Ubuntu:
@@ -216,6 +246,9 @@ sudo apt install build-essential libsodium-dev pkg-config
 ./stellar_vanity_parallel DRS DUNA
 ```
 
+Pass `--partials` to the build script to produce
+`stellar_vanity_parallel_partials` instead.
+
 For other distributions, install a C compiler, POSIX threads, libsodium
 development headers, and `pkg-config`, then run the same build script.
 
@@ -223,6 +256,14 @@ development headers, and `pkg-config`, then run the same build script.
 
 ```bash
 cc -O3 -pthread stellar_vanity_parallel.c -o stellar_vanity_parallel \
+  $(pkg-config --cflags --libs libsodium)
+```
+
+For the separate partial-match executable:
+
+```bash
+cc -O3 -pthread stellar_vanity_parallel_partials.c \
+  -o stellar_vanity_parallel_partials \
   $(pkg-config --cflags --libs libsodium)
 ```
 
