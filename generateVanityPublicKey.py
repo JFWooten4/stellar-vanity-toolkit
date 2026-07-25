@@ -6,7 +6,12 @@ def main():
     sys.exit("Try a shorter phrase.")
   if any(chars not in BASE_32_ALPHABET for chars in phrase):
     sys.exit("Try a base32 phrase.")
+  n = 0
+  startTime = time.time()
   while True:
+    if not n % 7:
+      showSearching(startTime)
+    n += 1
     pubKey = Keypair.random().public_key
     PKnoChecksum = pubKey[:-2]
     phraseInsertStartIndex = random.randint(1, len(PKnoChecksum) - len(phrase))
@@ -18,7 +23,8 @@ def main():
     )
     PK = getValidStellarPubKeyIfExists(PKnoChecksumWithPhrase)
     if PK:
-      sys.exit(f"\n\n\tPublic key found:\n\t{PK}\n")
+      print(f"\n\n\tPublic key found in {n} attempts:\n\t{PK}\n")
+      return
 
 def getValidStellarPubKeyIfExists(pubKeyNoChecksum):
   for char1 in BASE_32_ALPHABET:

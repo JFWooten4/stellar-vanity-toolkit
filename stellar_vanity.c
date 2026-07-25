@@ -151,7 +151,12 @@ int main(int argc, char **argv) {
   uppercase_in_place(prefix_after_g);
   uppercase_in_place(suffix);
 
-  bool show_partials = argc == 4 && strcmp(argv[3], "--partials") == 0;
+  if (argc == 4 && strcmp(argv[3], "--partials") != 0) {
+    usage(argv[0]);
+    return 1;
+  }
+
+  bool show_partials = argc == 4;
 
   if (!is_base32_string(prefix_after_g) || !is_base32_string(suffix)) {
     fprintf(stderr, "Try base32 inputs.\n");
