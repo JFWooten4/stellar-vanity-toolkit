@@ -102,7 +102,10 @@ missing.
 Use a virtual environment to keep the dependency isolated from the rest of
 your system.
 
-### Windows PowerShell
+### Install
+
+<details>
+<summary><strong>Windows — PowerShell</strong></summary>
 
 ```powershell
 py -3 -m venv .venv
@@ -118,7 +121,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-### macOS or Linux
+</details>
+
+<details>
+<summary><strong>macOS or Linux — bash/zsh</strong></summary>
 
 ```bash
 python3 -m venv .venv
@@ -126,17 +132,27 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
+</details>
+
 ### Generate a vanity keypair
+
+<details>
+<summary><strong>Windows — PowerShell</strong></summary>
 
 ```powershell
 python .\generateVanityKeypair.py
 ```
 
-On macOS or Linux:
+</details>
+
+<details>
+<summary><strong>macOS or Linux — bash/zsh</strong></summary>
 
 ```bash
 python generateVanityKeypair.py
 ```
+
+</details>
 
 The script asks for:
 
@@ -155,9 +171,23 @@ Press `Ctrl+C` to stop a long-running search.
 
 ### Generate a public address without a signer
 
+<details>
+<summary><strong>Windows — PowerShell</strong></summary>
+
 ```powershell
 python .\generateVanityPublicKey.py
 ```
+
+</details>
+
+<details>
+<summary><strong>macOS or Linux — bash/zsh</strong></summary>
+
+```bash
+python generateVanityPublicKey.py
+```
+
+</details>
 
 This utility places a requested phrase inside a checksum-valid Stellar account
 ID. It does not produce or know the secret key. Its output is suitable only
@@ -174,7 +204,12 @@ target when you want live partial-match output from multiple workers.
 Both programs accept the desired prefix without the leading `G`, followed by
 the suffix.
 
-### Windows requirements
+### Platform instructions
+
+<details>
+<summary><strong>Windows — PowerShell and Visual Studio</strong></summary>
+
+#### Requirements
 
 - 64-bit Windows
 - Visual Studio 2022 Build Tools with the C++ build tools installed
@@ -190,7 +225,7 @@ The scripts do not authenticate the archive. Verify the download using the
 signature information published with the official libsodium release before
 moving it into a trusted offline environment.
 
-### Windows parallel build
+#### Parallel build
 
 ```powershell
 .\build_stellar_vanity_parallel.ps1
@@ -204,7 +239,7 @@ Pass a number from 1 through 64 to override it:
 .\stellar_vanity_parallel.exe DRS DUNA 16
 ```
 
-### Windows parallel build with partial matches
+#### Parallel build with partial matches
 
 The partial-match variant is a separate executable, so the default parallel
 search remains focused on maximum throughput:
@@ -226,7 +261,7 @@ Each partial line shows a public key matching the longer requested side
 (prefix when the two sides are equal). Only the final full match includes a
 secret key.
 
-### Windows serial build
+#### Serial build
 
 ```powershell
 .\build_stellar_vanity.ps1
@@ -239,7 +274,10 @@ Enable partial-match output with:
 .\stellar_vanity.exe DRS DUNA --partials
 ```
 
-### macOS parallel build
+</details>
+
+<details>
+<summary><strong>macOS — zsh and Homebrew</strong></summary>
 
 Install the compiler and dependencies:
 
@@ -268,7 +306,10 @@ Build the separate partial-match variant with:
 ./stellar_vanity_parallel_partials DRS DUNA
 ```
 
-### Linux parallel build
+</details>
+
+<details>
+<summary><strong>Linux — bash and system packages</strong></summary>
 
 On Debian or Ubuntu:
 
@@ -284,6 +325,8 @@ Pass `--partials` to the build script to produce
 
 For other distributions, install a C compiler, POSIX threads, libsodium
 development headers, and `pkg-config`, then run the same build script.
+
+</details>
 
 ### Manual parallel build
 
