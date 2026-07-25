@@ -23,8 +23,7 @@ def main():
     )
     PK = getValidStellarPubKeyIfExists(PKnoChecksumWithPhrase)
     if PK:
-      print(f"\n\n\tPublic key found in {n} attempts:\n\t{PK}\n")
-      return
+      sys.exit(f"\n\n\tPublic key found in {n} attempts:\n\t{PK}\n")
 
 def getValidStellarPubKeyIfExists(pubKeyNoChecksum):
   for char1 in BASE_32_ALPHABET:

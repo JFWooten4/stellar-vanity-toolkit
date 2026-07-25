@@ -41,8 +41,7 @@ def main():
         \tPublic Key: {PK}
         \tSecret Key: {keypair.secret}\n
         """
-        print(result)
-        return
+        sys.exit(result)
       if partials:
         if searchingMoreForPrefix:
           if not prefixMatch: continue

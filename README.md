@@ -1,15 +1,79 @@
-# Vanity Stellar Address Toolkit
+# Stellar Vanity Address Toolkit
 
-## Python Search
+Generate Stellar public addresses with a chosen prefix, suffix, or embedded
+phrase. The toolkit includes an accessible Python implementation and faster C
+searchers for single-core and parallel workloads.
+
+> [!CAUTION]
+> This project handles cryptographic secret keys and has not undergone an
+> independent security audit. Use it for experimentation and education. Do not
+> use generated keys to protect funds you cannot afford to lose.
+
+## What this toolkit includes
+
+| Tool | Purpose | Produces a usable secret key? |
+| --- | --- | --- |
+| `generateVanityKeypair.py` | Interactive prefix and suffix search in Python | Yes |
+| `stellar_vanity.c` | Faster single-threaded prefix and suffix search | Yes |
+| `stellar_vanity_parallel.c` | Multi-threaded prefix and suffix search | Yes |
+| `generateVanityPublicKey.py` | Inserts a phrase into a checksum-valid public address | **No** |
+| `configureVanitySigners.py` | Reconfigures signers on a funded Stellar account | Uses an existing key; advanced and high risk |
+
+The keypair searchers repeatedly generate complete random keypairs and discard
+the ones that do not match. They never construct a secret key from the chosen
+text. At ordinary Base32 positions, every additional constrained character
+makes the search approximately 32 times more expensive.
+
+Stellar account IDs use the Base32 alphabet:
+
+```text
+ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+```
+
+The leading `G` is part of every Stellar account ID and is not included in the
+prefix argument. The next character can only be `A`, `B`, `C`, or `D`.
+
+## Security guidance
+
+Use the following precautions whenever a command produces a secret key:
+
+- Run the search on a trusted, malware-free computer.
+- Prefer an offline environment for keys intended to hold value.
+- Never paste a secret key into a website, chat, issue, log, or screenshot.
+- Treat terminal history, scrollback, recordings, and redirected output as
+  sensitive because the tools print the secret key.
+- Back up the secret securely before funding the account.
+- Independently verify that the secret derives the displayed public key.
+- Start with a test account and a minimal balance.
+
+`generateVanityPublicKey.py` is fundamentally different from the keypair
+searchers. It creates a checksum-valid public address without finding its
+corresponding secret key. No one is expected to be able to sign for that
+address. Use its output only for non-funded demonstrations.
+
+`configureVanitySigners.py` signs and can submit a transaction directly to the
+Stellar public network; it is not configured for testnet. It changes account
+authorization and can permanently remove access if a signer is incorrect,
+unavailable, or not backed up. Review the source, inspect the generated XDR,
+and understand Stellar signer weights and thresholds before considering it. It
+is not part of the quick-start workflow below.
+
+The Windows C build scripts download a pinned libsodium archive over HTTPS when
+the dependency is not already present. They do not currently verify the
+archive with a published checksum. Review the scripts and dependency source if
+your threat model requires supply-chain verification.
+
+## Python quick start
 
 ### Requirements
 
-- 🐍 Python 3.9+
-- 📦 `stellar-sdk`
+- Python 3.9 or newer
+- [`stellar-sdk`](https://stellar-sdk.readthedocs.io/)
 
-### Install
+Use a virtual environment to keep the dependency isolated from the rest of
+your system.
 
-Recommended (virtual environment, PowerShell on Windows):
+### Windows PowerShell
 
 ```powershell
 py -3 -m venv .venv
@@ -18,14 +82,15 @@ python -m pip install --upgrade pip
 python -m pip install stellar-sdk
 ```
 
-If PowerShell blocks activation, run:
+If local policy blocks virtual-environment activation, allow scripts only for
+the current PowerShell process:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-Recommended (virtual environment, bash/zsh on macOS/Linux):
+### macOS or Linux
 
 ```bash
 python3 -m venv .venv
@@ -34,120 +99,161 @@ python -m pip install --upgrade pip
 python -m pip install stellar-sdk
 ```
 
-Alternative (global install):
+### Generate a vanity keypair
+
+```powershell
+python .\generateVanityKeypair.py
+```
+
+On macOS or Linux:
 
 ```bash
-python3 -m pip install --upgrade pip
-python3 -m pip install stellar-sdk
+python generateVanityKeypair.py
 ```
 
-Alternative (global install, Windows PowerShell):
+The script asks for:
 
-```powershell
-py -3 -m pip install --upgrade pip
-py -3 -m pip install stellar-sdk
-```
+1. A prefix after the standard leading `G`
+2. A suffix
+3. Whether to display partial matches
 
-### Usage
-
-1. Run the script by executing the following command.
-
-If you activated a virtual environment, use `python` so the script runs with the packages installed in `.venv`:
-
-```powershell
-python .\generateVanity{FUNCTION}.py
-```
-
-If you did not activate a virtual environment and installed packages globally, use:
-
-```bash
-python3 generateVanity{FUNCTION}.py
-```
-
-On Windows PowerShell with a global install:
-
-```powershell
-py -3 .\generateVanity{FUNCTION}.py
-```
-
-- `Keypair` generates a standard pre- or suffix vanity public key
-- `PublicKey` generates a valid vanity public key without a signer
-
-2. Enter your desired inputs.
-
-3. View the result.
-
-## C Search
-
-The C searcher is separate from the Python scripts. It does not use
-`stellar-sdk`; it uses `libsodium`.
-
-The C searcher uses this argument format:
+For example, the prefix `DRS` and suffix `DUNA` search for an address shaped
+like:
 
 ```text
-<prefix-after-G> <suffix>
+GDRS...DUNA
 ```
 
-For example, this searches for a public key like `GDRS...DUNA`:
+Press `Ctrl+C` to stop a long-running search.
 
-```text
-DRS DUNA
+### Generate a public address without a signer
+
+```powershell
+python .\generateVanityPublicKey.py
 ```
 
-### Windows Parallel Build
+This utility places a requested phrase inside a checksum-valid Stellar account
+ID. It does not produce or know the secret key. Its output is suitable only
+for non-funded demonstrations where the address will never need to sign.
 
-The Windows build uses all detected CPU cores by default, up to 64 threads.
+## Faster C search
 
-From PowerShell:
+The C searchers use
+[`libsodium`](https://doc.libsodium.org/) for random bytes and Ed25519 key
+generation. Choose the parallel version for normal use; choose the serial
+version when you need partial-match output or want to restrict the search to
+one worker.
+
+Both programs accept the desired prefix without the leading `G`, followed by
+the suffix.
+
+### Windows requirements
+
+- 64-bit Windows
+- Visual Studio 2022 Build Tools with the C++ build tools installed
+- PowerShell, `curl.exe`, and `tar.exe`
+
+The build scripts download and unpack libsodium into the ignored `vendor`
+directory when necessary.
+
+### Windows parallel build
 
 ```powershell
 .\build_stellar_vanity_parallel.ps1
 .\stellar_vanity_parallel.exe DRS DUNA
 ```
 
-To force a specific thread count:
+The parallel search uses the detected logical CPU count, capped at 64 threads.
+Pass a number from 1 through 64 to override it:
 
 ```powershell
 .\stellar_vanity_parallel.exe DRS DUNA 16
 ```
 
-### macOS Parallel Build
+### Windows serial build
 
-The parallel C version uses all detected logical CPU cores by default, up to 64
-threads.
+```powershell
+.\build_stellar_vanity.ps1
+.\stellar_vanity.exe DRS DUNA
+```
 
-Install dependencies:
+Enable partial-match output with:
+
+```powershell
+.\stellar_vanity.exe DRS DUNA --partials
+```
+
+### macOS parallel build
+
+Install the compiler and dependencies:
 
 ```zsh
+xcode-select --install
 brew install libsodium pkg-config
 ```
 
-Build:
+Build and run:
 
 ```zsh
 ./build_stellar_vanity_parallel.sh
-```
-
-Run with all detected logical CPU cores:
-
-```zsh
 ./stellar_vanity_parallel DRS DUNA
 ```
 
-To force a specific thread count:
+Specify a worker count when needed:
 
 ```zsh
 ./stellar_vanity_parallel DRS DUNA 16
 ```
 
-To build manually:
+### Linux parallel build
 
-```zsh
-cc -O3 -pthread stellar_vanity_parallel.c -o stellar_vanity_parallel $(pkg-config --cflags --libs libsodium)
+On Debian or Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install build-essential libsodium-dev pkg-config
+./build_stellar_vanity_parallel.sh
+./stellar_vanity_parallel DRS DUNA
 ```
 
-## Disclaimer
+For other distributions, install a C compiler, POSIX threads, libsodium
+development headers, and `pkg-config`, then run the same build script.
 
-These scripts are for demonstration purposes only. Generating vanity public keys and using them for real-world applications can have security implications. Always exercise caution and follow best practices when working with cryptographic keys.
+### Manual parallel build
 
-It is highly recommended that you avoid using vanity keys in production or sensitive environments. I provide `configureVanitySigners.py` without any warranties or representations to create a transaction replacing a vanity account's signers with your own public keys. [More info](https://www.reddit.com/r/Stellar/comments/166bbqi/comment/jyod9ht/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button).
+```bash
+cc -O3 -pthread stellar_vanity_parallel.c -o stellar_vanity_parallel \
+  $(pkg-config --cflags --libs libsodium)
+```
+
+## Choosing a search pattern
+
+Short patterns are dramatically more practical than long ones. The following
+table assumes ordinary positions with 32 possible Base32 characters:
+
+| Constrained characters | Relative expected work |
+| ---: | ---: |
+| 1 | 32 attempts |
+| 2 | 1,024 attempts |
+| 3 | 32,768 attempts |
+| 4 | 1,048,576 attempts |
+| 5 | 33,554,432 attempts |
+| 6 | 1,073,741,824 attempts |
+
+These values describe the statistical expectation, not a deadline. A search
+may finish on its first attempt or run much longer than the expected value.
+Hardware, operating system, implementation, and background workload all affect
+elapsed time.
+
+The first character after Stellar's fixed leading `G` is a special case: only
+`A`, `B`, `C`, or `D` can occur there. Constraining that position therefore
+adds a factor of 4 rather than 32. Each later prefix character and each suffix
+character adds the usual factor of approximately 32.
+
+## Project status
+
+This is an experimental command-line toolkit. It is provided as-is, without a
+warranty of correctness, fitness, or security. Review the implementation and
+test the complete workflow before relying on generated material.
+
+Licensed under the [MIT License](LICENSE).
