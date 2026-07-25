@@ -1,45 +1,383 @@
-# Vanity Stellar Address Toolkit
+# Stellar Vanity Address Toolkit
 
-## Requirements
+Generate Stellar public addresses with a chosen prefix, suffix, or embedded
+phrase. The toolkit includes an accessible Python implementation and faster C
+searchers for single-core and parallel workloads.
 
-- 🐍 Python 3.9+
-- 📦 `stellar-sdk`
+## What this toolkit includes
 
-## Install
+### Python
 
-Recommended (virtual environment):
+| Tool | Purpose |
+| --- | --- |
+| `generateVanityKeypair.py` | Interactive prefix and suffix search in Python |
+| `generateVanityPublicKey.py` | Inserts a phrase into a checksum-valid public address |
+| `configureVanitySigners.py` | Reconfigures signers on a funded Stellar account |
+
+### C
+
+| Tool | Purpose |
+| --- | --- |
+| `stellar_vanity.c` | Faster single-threaded prefix and suffix search |
+| `stellar_vanity_parallel.c` | Multi-threaded prefix and suffix search |
+| `stellar_vanity_parallel_partials.c` | Multi-threaded search with live partial matches |
+
+The keypair searchers repeatedly generate complete random keypairs and discard
+the ones that do not match. They never construct a secret key from the chosen
+text. At ordinary Base32 positions, every additional constrained character
+makes the search approximately 32 times more expensive.
+
+Stellar account IDs use the Base32 alphabet:
+
+```text
+ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
+```
+
+The leading `G` is part of every Stellar account ID and is not included in the
+prefix argument. The next character can only be `A`, `B`, `C`, or `D`.
+
+## Security guidance
+
+Use the following precautions whenever a command produces a secret key:
+
+- Run the search on a trusted, malware-free computer.
+- Prefer an offline environment for keys intended to hold value.
+- Never paste a secret key into a website, chat, issue, log, or screenshot.
+- Treat terminal history, scrollback, recordings, and redirected output as
+  sensitive because the tools print the secret key.
+- Back up the secret securely before funding the account.
+- Independently verify that the secret derives the displayed public key.
+- Start with a test account and a minimal balance.
+
+`generateVanityPublicKey.py` is fundamentally different from the keypair
+searchers. It creates a checksum-valid public address without finding its
+corresponding secret key. No one is expected to be able to sign for that
+address. Use its output only for non-funded demonstrations.
+
+`configureVanitySigners.py` signs and submits a transaction directly to the
+Stellar public network; it is not configured for testnet or offline use. It
+changes account authorization and can permanently remove access if a signer is
+incorrect, unavailable, or not backed up. Review the source, inspect the
+generated XDR, and understand Stellar signer weights and thresholds before
+considering it. It is not part of the quick-start workflow below.
+
+## Network and offline behavior
+
+The vanity-generation tools do not require a network connection after their
+dependencies are available locally.
+
+| Component | Network behavior |
+| --- | --- |
+| Python keypair and public-key generators | No runtime network access |
+| C search executables | No runtime network access |
+| C build scripts | Never download; use only a local libsodium installation or archive |
+| `configureVanitySigners.py` | Requires public Horizon to load the account, fetch a fee, and submit the transaction |
+
+Documentation links and package-install examples may point to external sites,
+but the search programs themselves do not contact those sites. The signer
+configuration workflow is the one intentional exception and cannot complete
+offline because it modifies an account on the Stellar network.
+
+### Prepare Python packages for an offline computer
+
+On a connected computer with the same operating system, architecture, and
+Python version as the offline computer, download the pinned requirement and
+its dependencies:
+
+```bash
+python -m pip download --dest offline-packages -r requirements.txt
+```
+
+Copy this repository and the resulting `offline-packages` directory to the
+offline computer. Install without consulting a package index:
+
+```bash
+python -m pip install --no-index --find-links offline-packages -r requirements.txt
+```
+
+The `--no-index` option makes the offline guarantee explicit: installation
+fails instead of attempting a network request when a required package is
+missing.
+
+## Python quick start
+
+### Requirements
+
+- Python 3.10 or newer
+- [`stellar-sdk`](https://stellar-sdk.readthedocs.io/)
+
+Use a virtual environment to keep the dependency isolated from the rest of
+your system.
+
+### Install
+
+<details>
+<summary><strong>Windows — PowerShell</strong></summary>
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+If local policy blocks virtual-environment activation, allow scripts only for
+the current PowerShell process:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+</details>
+
+<details>
+<summary><strong>macOS or Linux — bash/zsh</strong></summary>
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install stellar-sdk
+python -m pip install -r requirements.txt
 ```
 
-Alternative (global install):
+</details>
+
+### Generate a vanity keypair
+
+<details>
+<summary><strong>Windows — PowerShell</strong></summary>
+
+```powershell
+python .\generateVanityKeypair.py
+```
+
+</details>
+
+<details>
+<summary><strong>macOS or Linux — bash/zsh</strong></summary>
 
 ```bash
-python3 -m pip install --upgrade pip
-python3 -m pip install stellar-sdk
+python generateVanityKeypair.py
 ```
 
-## Usage
+</details>
 
-1. Run the script by executing the following command:
+The script asks for:
+
+1. A prefix after the standard leading `G`
+2. A suffix
+3. Whether to display partial matches
+
+For example, the prefix `DRS` and suffix `DUNA` search for an address shaped
+like:
+
+```text
+GDRS...DUNA
+```
+
+Press `Ctrl+C` to stop a long-running search.
+
+### Generate a public address without a signer
+
+<details>
+<summary><strong>Windows — PowerShell</strong></summary>
+
+```powershell
+python .\generateVanityPublicKey.py
+```
+
+</details>
+
+<details>
+<summary><strong>macOS or Linux — bash/zsh</strong></summary>
 
 ```bash
-python3 generateVanity{FUNCTION}.py
+python generateVanityPublicKey.py
 ```
 
-- `Keypair` generates a standard pre- or suffix vanity public key
-- `PublicKey` generate a valid vanity public key without a signer
+</details>
 
-2. Enter your desired inputs.
+This utility places a requested phrase inside a checksum-valid Stellar account
+ID. It does not produce or know the secret key. Its output is suitable only
+for non-funded demonstrations where the address will never need to sign.
 
-3. View the result.
+## Faster C search
 
-## Disclaimer
+The C searchers use
+[`libsodium`](https://doc.libsodium.org/) for random bytes and Ed25519 key
+generation. Choose the parallel version for normal use; choose the serial
+version when you want one worker, or choose the separate parallel-partials
+target when you want live partial-match output from multiple workers.
 
-These scripts are for demonstration purposes only. Generating vanity public keys and using them for real-world applications can have security implications. Always exercise caution and follow best practices when working with cryptographic keys. 
+Both programs accept the desired prefix without the leading `G`, followed by
+the suffix.
 
-It is highly recommended that you avoid using vanity keys in production or sensitive environments. I provide `configureVanitySigners.py` without any warranties or representations to create a transaction replacing a vanity account's signers with your own public keys. [More info](https://www.reddit.com/r/Stellar/comments/166bbqi/comment/jyod9ht/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button).
+### Platform instructions
+
+<details>
+<summary><strong>Windows — PowerShell and Visual Studio</strong></summary>
+
+#### Requirements
+
+- 64-bit Windows
+- Visual Studio 2022 Build Tools with the C++ build tools installed
+- PowerShell and `tar.exe`
+
+The build scripts never access the network. Before disconnecting, download the
+official `libsodium-1.0.21-stable-msvc.zip` archive and place it in the
+repository root as `libsodium-msvc.zip`. The first build extracts it into the
+ignored `vendor` directory. You can instead copy an already extracted
+`vendor/libsodium` directory with the repository.
+
+The scripts do not authenticate the archive. Verify the download using the
+signature information published with the official libsodium release before
+moving it into a trusted offline environment.
+
+#### Parallel build
+
+```powershell
+.\build_stellar_vanity_parallel.ps1
+.\stellar_vanity_parallel.exe DRS DUNA
+```
+
+The parallel search uses the detected logical CPU count, capped at 64 threads.
+Pass a number from 1 through 64 to override it:
+
+```powershell
+.\stellar_vanity_parallel.exe DRS DUNA 16
+```
+
+#### Parallel build with partial matches
+
+The partial-match variant is a separate executable, so the default parallel
+search remains focused on maximum throughput:
+
+```powershell
+.\build_stellar_vanity_parallel.ps1 -Partials
+.\stellar_vanity_parallel_partials.exe DRS DUNA
+```
+
+It accepts the same optional worker count:
+
+```powershell
+.\stellar_vanity_parallel_partials.exe DRS DUNA 16
+```
+
+Worker output is synchronized to keep partial results readable. Terminal I/O
+still adds overhead, especially for short patterns that match frequently.
+Each partial line shows a public key matching the longer requested side
+(prefix when the two sides are equal). Only the final full match includes a
+secret key.
+
+#### Serial build
+
+```powershell
+.\build_stellar_vanity.ps1
+.\stellar_vanity.exe DRS DUNA
+```
+
+Enable partial-match output with:
+
+```powershell
+.\stellar_vanity.exe DRS DUNA --partials
+```
+
+</details>
+
+<details>
+<summary><strong>macOS — zsh and Homebrew</strong></summary>
+
+Install the compiler and dependencies:
+
+```zsh
+xcode-select --install
+brew install libsodium pkg-config
+```
+
+Build and run:
+
+```zsh
+./build_stellar_vanity_parallel.sh
+./stellar_vanity_parallel DRS DUNA
+```
+
+Specify a worker count when needed:
+
+```zsh
+./stellar_vanity_parallel DRS DUNA 16
+```
+
+Build the separate partial-match variant with:
+
+```zsh
+./build_stellar_vanity_parallel.sh --partials
+./stellar_vanity_parallel_partials DRS DUNA
+```
+
+</details>
+
+<details>
+<summary><strong>Linux — bash and system packages</strong></summary>
+
+On Debian or Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install build-essential libsodium-dev pkg-config
+./build_stellar_vanity_parallel.sh
+./stellar_vanity_parallel DRS DUNA
+```
+
+Pass `--partials` to the build script to produce
+`stellar_vanity_parallel_partials` instead.
+
+For other distributions, install a C compiler, POSIX threads, libsodium
+development headers, and `pkg-config`, then run the same build script.
+
+</details>
+
+### Manual parallel build
+
+```bash
+cc -O3 -pthread stellar_vanity_parallel.c -o stellar_vanity_parallel \
+  $(pkg-config --cflags --libs libsodium)
+```
+
+For the separate partial-match executable:
+
+```bash
+cc -O3 -pthread stellar_vanity_parallel_partials.c \
+  -o stellar_vanity_parallel_partials \
+  $(pkg-config --cflags --libs libsodium)
+```
+
+## Choosing a search pattern
+
+Short patterns are dramatically more practical than long ones. The following
+table assumes ordinary positions with 32 possible Base32 characters:
+
+| Constrained characters | Relative expected work |
+| ---: | ---: |
+| 1 | 32 attempts |
+| 2 | 1,024 attempts |
+| 3 | 32,768 attempts |
+| 4 | 1,048,576 attempts |
+| 5 | 33,554,432 attempts |
+| 6 | 1,073,741,824 attempts |
+
+These values describe the statistical expectation, not a deadline. A search
+may finish on its first attempt or run much longer than the expected value.
+Hardware, operating system, implementation, and background workload all affect
+elapsed time.
+
+The first character after Stellar's fixed leading `G` is a special case: only
+`A`, `B`, `C`, or `D` can occur there. Constraining that position therefore
+adds a factor of 4 rather than 32. Each later prefix character and each suffix
+character adds the usual factor of approximately 32.
+
+## Project status
+
+This is an experimental command-line toolkit. It is provided as-is, without a
+warranty of correctness, fitness, or security. Review the implementation and
+test the complete workflow before relying on generated material.
+
+Licensed under the [MIT License](LICENSE).

@@ -10,18 +10,20 @@ def main():
     if firstChar not in ["", "A", "B", "C", "D"]:
       sys.exit("Try a prefix starting with A/B/C/D.")
     suffix = getINPUT("Enter the desired suffix: ")
-    
+
     # Input Validation #
     if any(chars not in BASE_32_ALPHABET for chars in prefix + suffix):
       sys.exit("Try base32 inputs.")
     prefixLen = len(prefix)
     suffixLen = len(suffix)
-    validateSearchSpan(prefixLen + suffixLen)
+    warning = validateSearchSpan(prefixLen + suffixLen)
     searchingMoreForPrefix = prefixLen > suffixLen
     prefix = f"G{prefix}"
-    
+
     # Main Keygen #
     partials = getINPUT("Show partial matches? (Y/n): ") == "Y"
+    if warning:
+      print(warning)
 
     startTime = time.time()
     n = 0
@@ -58,18 +60,19 @@ def main():
 
 def validateSearchSpan(totalInputLen):
   if totalInputLen > 10:
-    sys.exit("Try shorter inputs.")
-  if totalInputLen == 5:
-    print("Be advised: >30 min to compute.")
-  if totalInputLen == 6:
-    print("Be advised: >2 hrs to compute.")
-  if totalInputLen == 7:
-    print("Be advised: >10 hrs to compute.")
-  if totalInputLen == 8:
-    print("Be advised: >30 hrs to compute.")
-  if totalInputLen == 9:
-    print("Be advised: >3 days to compute.")
-  if totalInputLen == 10:
-    print("Be advised: >9 days to compute.")
+    sys.exit("Try shorter inputs. Each extra character makes the search 32x harder.")
+
+  averageAttempts = 32 ** totalInputLen // 2
+  attempts = f"{averageAttempts:,}"
+  warnings = {
+    4: f"Be advised: average search is about {attempts} attempts.",
+    5: f"Be advised: average search is about {attempts} attempts and may take a while.",
+    6: f"Be advised: average search is about {attempts} attempts and may take hours or days.",
+    7: f"Be advised: average search is about {attempts} attempts and may take days, weeks, or longer.",
+    8: f"Be advised: average search is about {attempts} attempts and is probably impractical in Python.",
+    9: f"Be advised: average search is about {attempts} attempts and is not practical for normal Python keygen.",
+    10: f"Be advised: average search is about {attempts} attempts and is not practical for normal Python keygen.",
+  }
+  return warnings.get(totalInputLen)
 
 main()
