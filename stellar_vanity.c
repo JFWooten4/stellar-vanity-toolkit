@@ -54,30 +54,30 @@ static uint16_t crc16_xmodem(const uint8_t *data, size_t len) {
 
 static void base32_encode_no_padding(
   const uint8_t *data,
-  size_t data_len,
+  size_t dataLen,
   char *out
 ) {
   uint32_t buffer = 0;
-  int bits_left = 0;
-  size_t out_pos = 0;
+  int bitsLeft = 0;
+  size_t outPos = 0;
 
-  for (size_t i = 0; i < data_len; i++) {
+  for (size_t i = 0; i < dataLen; i++) {
     buffer = (buffer << 8) | data[i];
-    bits_left += 8;
+    bitsLeft += 8;
 
-    while (bits_left >= 5) {
-      int index = (buffer >> (bits_left - 5)) & 31;
-      out[out_pos++] = BASE32_ALPHABET[index];
-      bits_left -= 5;
+    while (bitsLeft >= 5) {
+      int index = (buffer >> (bitsLeft - 5)) & 31;
+      out[outPos++] = BASE32_ALPHABET[index];
+      bitsLeft -= 5;
     }
   }
 
-  if (bits_left > 0) {
-    int index = (buffer << (5 - bits_left)) & 31;
-    out[out_pos++] = BASE32_ALPHABET[index];
+  if (bitsLeft > 0) {
+    int index = (buffer << (5 - bitsLeft)) & 31;
+    out[outPos++] = BASE32_ALPHABET[index];
   }
 
-  out[out_pos] = '\0';
+  out[outPos] = '\0';
 }
 
 static void strkey_encode(uint8_t version, const uint8_t raw[32], char out[57]) {
@@ -100,27 +100,27 @@ static bool starts_with(const char *s, const char *prefix) {
 }
 
 static bool ends_with(const char *s, const char *suffix) {
-  size_t s_len = strlen(s);
-  size_t suffix_len = strlen(suffix);
+  size_t sLen = strlen(s);
+  size_t suffixLen = strlen(suffix);
 
-  if (suffix_len > s_len) {
+  if (suffixLen > sLen) {
     return false;
   }
 
-  return strcmp(s + s_len - suffix_len, suffix) == 0;
+  return strcmp(s + sLen - suffixLen, suffix) == 0;
 }
 
-static void validate_search_span(size_t total_len) {
-  if (total_len > 7) {
+static void validate_search_span(size_t totalLen) {
+  if (totalLen > 7) {
     fprintf(stderr, "Try shorter inputs unless you are ready to wait a very long time.\n");
     exit(1);
   }
 
-  if (total_len == 5) {
+  if (totalLen == 5) {
     printf("Be advised: this could take a long time.\n");
-  } else if (total_len == 6) {
+  } else if (totalLen == 6) {
     printf("Be advised: this could take hours or days.\n");
-  } else if (total_len == 7) {
+  } else if (totalLen == 7) {
     printf("Be advised: this could take days, weeks, or longer.\n");
   }
 }
@@ -142,13 +142,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  char prefix_after_g[64];
+  char prefixAfterG[64];
   char suffix[64];
 
-  snprintf(prefix_after_g, sizeof(prefix_after_g), "%s", argv[1]);
+  snprintf(prefixAfterG, sizeof(prefixAfterG), "%s", argv[1]);
   snprintf(suffix, sizeof(suffix), "%s", argv[2]);
 
-  uppercase_in_place(prefix_after_g);
+  uppercase_in_place(prefixAfterG);
   uppercase_in_place(suffix);
 
   if (argc == 4 && strcmp(argv[3], "--partials") != 0) {
@@ -156,80 +156,80 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  bool show_partials = argc == 4;
+  bool showPartials = argc == 4;
 
-  if (!is_base32_string(prefix_after_g) || !is_base32_string(suffix)) {
+  if (!is_base32_string(prefixAfterG) || !is_base32_string(suffix)) {
     fprintf(stderr, "Try base32 inputs.\n");
     return 1;
   }
 
   if (
-    prefix_after_g[0] != '\0' &&
-    prefix_after_g[0] != 'A' &&
-    prefix_after_g[0] != 'B' &&
-    prefix_after_g[0] != 'C' &&
-    prefix_after_g[0] != 'D'
+    prefixAfterG[0] != '\0' &&
+    prefixAfterG[0] != 'A' &&
+    prefixAfterG[0] != 'B' &&
+    prefixAfterG[0] != 'C' &&
+    prefixAfterG[0] != 'D'
   ) {
     fprintf(stderr, "Try a prefix starting with A/B/C/D after the leading G.\n");
     return 1;
   }
 
-  size_t prefix_len = strlen(prefix_after_g);
-  size_t suffix_len = strlen(suffix);
+  size_t prefixLen = strlen(prefixAfterG);
+  size_t suffixLen = strlen(suffix);
 
-  validate_search_span(prefix_len + suffix_len);
+  validate_search_span(prefixLen + suffixLen);
 
-  char full_prefix[66];
-  snprintf(full_prefix, sizeof(full_prefix), "G%s", prefix_after_g);
+  char fullPrefix[66];
+  snprintf(fullPrefix, sizeof(fullPrefix), "G%s", prefixAfterG);
 
-  printf("Searching for: %s...%s\n", full_prefix, suffix);
-  printf("Partial matches: %s\n", show_partials ? "on" : "off");
+  printf("Searching for: %s...%s\n", fullPrefix, suffix);
+  printf("Partial matches: %s\n", showPartials ? "on" : "off");
 
   uint64_t attempts = 0;
   while (true) {
     uint8_t seed[crypto_sign_SEEDBYTES];
-    uint8_t public_key[crypto_sign_PUBLICKEYBYTES];
-    uint8_t secret_key[crypto_sign_SECRETKEYBYTES];
+    uint8_t publicKey[crypto_sign_PUBLICKEYBYTES];
+    uint8_t secretKey[crypto_sign_SECRETKEYBYTES];
 
-    char public_strkey[STRKEY_ENCODED_LEN + 1];
-    char secret_strkey[STRKEY_ENCODED_LEN + 1];
+    char publicStrkey[STRKEY_ENCODED_LEN + 1];
+    char secretStrkey[STRKEY_ENCODED_LEN + 1];
 
     randombytes_buf(seed, sizeof(seed));
-    crypto_sign_seed_keypair(public_key, secret_key, seed);
+    crypto_sign_seed_keypair(publicKey, secretKey, seed);
 
-    strkey_encode(VERSION_ACCOUNT_ID, public_key, public_strkey);
+    strkey_encode(VERSION_ACCOUNT_ID, publicKey, publicStrkey);
 
     attempts++;
 
-    bool prefix_match = starts_with(public_strkey, full_prefix);
-    bool suffix_match = ends_with(public_strkey, suffix);
+    bool prefixMatch = starts_with(publicStrkey, fullPrefix);
+    bool suffixMatch = ends_with(publicStrkey, suffix);
 
-    if (prefix_match && suffix_match) {
-      strkey_encode(VERSION_SEED, seed, secret_strkey);
+    if (prefixMatch && suffixMatch) {
+      strkey_encode(VERSION_SEED, seed, secretStrkey);
 
       printf("\n\nKeypair found:\n");
       printf("Attempts:   %llu\n", (unsigned long long)attempts);
-      printf("Public Key: %s\n", public_strkey);
-      printf("Secret Key: %s\n", secret_strkey);
+      printf("Public Key: %s\n", publicStrkey);
+      printf("Secret Key: %s\n", secretStrkey);
 
       sodium_memzero(seed, sizeof(seed));
-      sodium_memzero(secret_key, sizeof(secret_key));
-      sodium_memzero(secret_strkey, sizeof(secret_strkey));
+      sodium_memzero(secretKey, sizeof(secretKey));
+      sodium_memzero(secretStrkey, sizeof(secretStrkey));
 
       return 0;
     }
 
-    if (show_partials) {
-      if (prefix_len >= suffix_len && prefix_match) {
-        printf("\rPartial Fit: %s...%s", full_prefix, public_strkey + STRKEY_ENCODED_LEN - 6);
+    if (showPartials) {
+      if (prefixLen >= suffixLen && prefixMatch) {
+        printf("\rPartial Fit: %s...%s", fullPrefix, publicStrkey + STRKEY_ENCODED_LEN - 6);
         fflush(stdout);
-      } else if (suffix_len > prefix_len && suffix_match) {
-        printf("\rPartial Fit: %.6s...%s", public_strkey, suffix);
+      } else if (suffixLen > prefixLen && suffixMatch) {
+        printf("\rPartial Fit: %.6s...%s", publicStrkey, suffix);
         fflush(stdout);
       }
     }
 
     sodium_memzero(seed, sizeof(seed));
-    sodium_memzero(secret_key, sizeof(secret_key));
+    sodium_memzero(secretKey, sizeof(secretKey));
   }
 }
