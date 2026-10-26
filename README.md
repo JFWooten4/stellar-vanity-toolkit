@@ -1,5 +1,23 @@
 # Stellar Vanity Address Toolkit
 
+## Browser frontend (experimental)
+
+A security-forward, dependency-free browser keypair searcher is included in
+[`web/`](web/). It generates random Ed25519 keypairs **locally inside a browser
+Web Worker**, and never sends a seed to an API. The production
+[`vercel.json`](vercel.json) restricts network access with Content Security Policy.
+
+**Run locally:** `python3 -m http.server 4173 --bind 127.0.0.1 --directory web`
+and open `http://127.0.0.1:4173`. **Test:** `node --test tests/strkey.test.mjs`.
+**Deploy:** import this repo into Vercel (static output: `web`) and configure
+the `keygen.wooten.link` custom domain through Vercel's DNS instructions.
+
+**Security warning:** A remotely hosted webpage is not equivalent to an
+air-gapped key generator. Review source and use offline tooling or a verified
+wallet for accounts holding meaningful funds. See the full
+[web quick start, security limitations, self-hosting, and Vercel instructions](docs/WEB.md).
+
+
 Generate Stellar public addresses with a chosen prefix, suffix, or embedded
 phrase. The toolkit includes an accessible Python implementation and faster C
 searchers for single-core and parallel workloads.

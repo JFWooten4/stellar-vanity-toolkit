@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Client-side Stellar vanity address generator. No accounts, trackers, APIs, or server-side key generation.">
+  <title>Stellar Keygen | Local-only vanity keys</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Stellar Keygen home"><span class="brand-mark" aria-hidden="true">✳</span><span>STELLAR <strong>KEYGEN</strong></span></a>
+      <span class="header-pill"><span class="status-dot"></span> STATIC · CLIENT-SIDE</span>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="eyebrow">LOCAL GENERATION / YOUR KEYS, YOUR DEVICE</div>
+        <h1 id="hero-title">Your keys.<br><em>Never our server.</em></h1>
+        <p class="lead">Search for a Stellar public address that starts or ends with your chosen letters. All key generation runs in your browser—there is no key-generation endpoint.</p>
+        <div class="assurances" aria-label="Security properties">
+          <span>◎ No accounts or API calls</span><span>◎ No tracking or third-party scripts</span><span>◎ No stored secrets</span>
+        </div>
+      </section>
+
+      <section class="security-notice" aria-label="Important security notice">
+        <span class="notice-icon" aria-hidden="true">!</span>
+        <div><strong>PUBLIC WEBSITE ≠ TRUSTED HARDWARE</strong>
+        <p>A hosting provider, browser extension, compromised device, or changed site code can expose keys. <b>For meaningful funds, use a reviewed wallet or trusted offline tooling</b> and verify its provenance. This experimental page is for learning and testing; it is not security-audited.</p></div>
+      </section>
+
+      <div class="main-grid">
+        <section class="panel generator" aria-labelledby="form-title">
+          <div class="panel-top"><span class="panel-step">01 / GENERATOR</span><span class="running-tag" id="mode">IDLE</span></div>
+          <h2 id="form-title">Find your address</h2>
+          <p class="panel-subtitle">Enter a prefix after Stellar’s fixed <code>G</code>, a suffix, or both.</p>
+          <form id="generator-form" novalidate>
+            <div class="input-row">
+              <label for="prefix">Prefix <small>after G</small></label>
+              <input id="prefix" name="prefix" maxlength="8" placeholder="e.g. DRS" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
+            </div>
+            <div class="input-row">
+              <label for="suffix">Suffix <small>at end</small></label>
+              <input id="suffix" name="suffix" maxlength="8" placeholder="e.g. APE" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
+            </div>
+            <p id="validation" class="validation" role="alert" aria-live="polite"></p>
+            <div class="cost"><span>EXPECTED SEARCH WORK <span class="help" title="Statistical estimate, not a time guarantee">ⓘ</span></span><strong id="estimate">—</strong></div>
+            <p class="hint">Alphabet: A–Z and 2–7. After G, the first character is A, B, C, or D. Each additional character makes searching much harder.</p>
+            <div class="actions">
+              <button id="start" type="submit" class="primary">◈ Start local search</button>
+              <button id="stop" type="button" class="secondary" disabled>Stop</button>
+            </div>
+          </form>
+          <div class="progress" aria-live="polite">
+            <div><span class="stat-label">KEYPAIRS TRIED</span><strong id="attempts">0</strong></div>
+            <div class="progress-bar"><span id="progress-bar"></span></div>
+            <span class="progress-caption" id="status">Ready. Nothing has been generated or stored.</span>
+          </div>
+        </section>
+
+        <aside class="panel safeguards" aria-labelledby="safe-title">
+          <div class="panel-top"><span class="panel-step">02 / SAFETY CHECKLIST</span><span aria-hidden="true">◈</span></div>
+          <h2 id="safe-title">Know what you are generating</h2>
+          <div class="safety-item"><span class="safety-count">01</span><p><strong>Real, random keypairs</strong><br>Uses the browser's Web Crypto Ed25519 implementation and Stellar's public/secret key encodings. Not a fabricated address without a signer.</p></div>
+          <div class="safety-item"><span class="safety-count">02</span><p><strong>No backend requests</strong><br>The app has no network APIs. The production Content Security Policy blocks outgoing connections, external scripts, and framing.</p></div>
+          <div class="safety-item"><span class="safety-count">03</span><p><strong>Secret shown on demand</strong><br>The result is held in page memory until discarded or the tab is closed. Copying puts it on your system clipboard, outside this site's control.</p></div>
+          <div class="safety-item"><span class="safety-count">04</span><p><strong>Offline is safer</strong><br>For testing, self-host the static files on localhost. For anything valuable, disconnect after obtaining and inspecting the code, and use a trusted offline system.</p></div>
+        </aside>
+      </div>
+
+      <section class="panel result" id="result" hidden aria-labelledby="result-title">
+        <div class="panel-top"><span class="panel-step">03 / MATCH FOUND</span><span class="result-pill">LOCALLY GENERATED</span></div>
+        <h2 id="result-title">Matching keypair</h2>
+        <p class="panel-subtitle">Verify the address and secure the secret before transferring any funds.</p>
+        <label for="public-key">Public address · safe to share</label>
+        <div class="key-field"><output id="public-key"></output><button id="copy-public" type="button" class="mini-button">Copy</button></div>
+        <label for="secret-key">Secret seed · gives full account control</label>
+        <div class="key-field sensitive"><output id="secret-key">••••••••••••••••••••••••••••••••••••</output><button id="reveal" type="button" class="mini-button">Reveal</button><button id="copy-secret" type="button" class="mini-button" hidden>Copy secret</button></div>
+        <p class="sensitive-note">Revealing exposes your secret on screen. Clipboard history, screenshots, and browser extensions may retain it.</p>
+        <button id="discard" type="button" class="secondary discard">Discard keypair from page</button>
+      </section>
+      <footer><span>OPEN SOURCE · STATIC SITE · NO TRANSACTION SIGNING</span><a href="https://github.com/JFWooten4/stellar-vanity-toolkit" rel="noopener noreferrer" target="_blank">Source &amp; self-hosting guide ↗</a></footer>
+    </main>
+  </div>
+</body>
+</html>
